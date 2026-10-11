@@ -594,9 +594,9 @@ export default function Home() {
           </p>
         </div>
 
-        {/* View Switcher Navigation */}
-        <div className={styles.navBar}>
-          {papers.length > 0 ? (
+        {/* View Switcher Navigation (Only rendered when documents are loaded) */}
+        {papers.length > 0 && (
+          <div className={styles.navBar}>
             <div className={styles.viewModeNav}>
               <button
                 className={styles.viewModeBtn}
@@ -625,20 +625,8 @@ export default function Home() {
                 Article View
               </button>
             </div>
-          ) : (
-            <div className={styles.viewModeNav}>
-              <button
-                className={`${styles.viewModeBtn} ${styles.viewModeBtnActive}`}
-                onClick={handleResetHome}
-                title="Home: Document Ingestion"
-              >
-                Home
-              </button>
-            </div>
-          )}
 
-          <div className={styles.actionGroup}>
-            {papers.length > 0 && (
+            <div className={styles.actionGroup}>
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => fileInputRef.current?.click()}
@@ -646,9 +634,9 @@ export default function Home() {
               >
                 + Add Papers
               </button>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </header>
 
       {/* Top API Key Configuration Notice Bar */}
