@@ -15,7 +15,7 @@ from llm_service import LLMService
 load_dotenv()
 
 app = FastAPI(
-    title="Research Paper Analyser Pro API",
+    title="PaperScope AI API",
     description="Enterprise-grade academic document analysis & conversational RAG engine",
     version="2.0.0"
 )
@@ -28,8 +28,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Store for papers and multi-document collections
-PAPERS_STORE: Dict[str, Dict[str, Any]] = {}
+# Multi-user session-aware storage: session_id -> { paper_id -> paper_obj }
+SESSIONS_STORE: Dict[str, Dict[str, Any]] = {}
+DEFAULT_SESSION_ID = "default"
+
+def get_session_store(session_id: Optional[str] = None) -> Dict[str, Any]:
+    sid = (session_id or "").strip() or DEFAULT_SESSION_ID
+    if sid not in SESSIONS_STORE:
+        SESSIONS_STORE[sid] = {}
+    return SESSIONS_STORE[sid]
+
+def find_paper_anywhere(paper_id: str, preferred_store: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if paper_id in preferred_store:
+        return preferred_store[paper_id]
+    for s in SESSIONS_STORE.values():
+        if paper_id in s:
+            return s[paper_id]
+    return None
 
 class ChatRequest(BaseModel):
     paper_id: Optional[str] = "all"
@@ -40,10 +55,13 @@ class ChatRequest(BaseModel):
     provider: Optional[str] = "gemini"
     model: Optional[str] = "gemini-2.5-flash"
     api_key: Optional[str] = None
+    top_k: Optional[int] = 5
+    session_id: Optional[str] = None
 
 class ExportRequest(BaseModel):
     paper_id: Optional[str] = "all"
     chat_history: Optional[List[Dict[str, str]]] = []
+    session_id: Optional[str] = None
 
 def resolve_credentials(header_gemini: Optional[str], header_groq: Optional[str], body_key: Optional[str] = None):
     candidate = (body_key or "").strip()
@@ -62,14 +80,22 @@ def resolve_credentials(header_gemini: Optional[str], header_groq: Optional[str]
 async def health_check():
     has_gemini = bool(os.environ.get("GOOGLE_API_KEY"))
     has_groq = bool(os.environ.get("GROQ_API_KEY"))
+    total_papers = sum(len([p for pid, p in s.items() if pid != "all"]) for s in SESSIONS_STORE.values())
     return {
         "status": "healthy",
         "version": "2.0.0",
-        "active_papers_count": len(PAPERS_STORE),
+        "active_sessions_count": len(SESSIONS_STORE),
+        "active_papers_count": total_papers,
         "keys_configured": {
             "google_gemini": has_gemini,
             "groq": has_groq
         },
+        "available_chunking_strategies": [
+            {"id": "balanced", "name": "Balanced Paragraph (900 chars)", "description": "Standard balanced context for general academic papers"},
+            {"id": "fine_grained", "name": "Fine-Grained Sentences (450 chars)", "description": "High-precision retrieval for metrics & formulas"},
+            {"id": "coarse", "name": "Coarse Deep Context (1800 chars)", "description": "Extended context for theoretical methods & proofs"},
+            {"id": "section_aware", "name": "Section-Aware Academic", "description": "Strict boundary isolation by paper section headers"}
+        ],
         "available_models": [
             {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Ultra Fast & Recommended)", "provider": "gemini"},
             {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro (Deep Reasoning)", "provider": "gemini"},
@@ -84,11 +110,19 @@ async def upload_papers(
     file: Optional[UploadFile] = File(None),
     x_gemini_key: Optional[str] = Header(None),
     x_groq_key: Optional[str] = Header(None),
-    client_api_key: Optional[str] = Form(None)
+    x_session_id: Optional[str] = Header(None),
+    client_api_key: Optional[str] = Form(None),
+    session_id: Optional[str] = Form(None),
+    chunking_strategy: Optional[str] = Form("balanced"),
+    chunk_size: Optional[int] = Form(None),
+    chunk_overlap: Optional[int] = Form(None)
 ):
     upload_list = files or ([file] if file else [])
     if not upload_list:
         raise HTTPException(status_code=400, detail="No PDF files uploaded.")
+
+    sid = (session_id or x_session_id or "").strip() or DEFAULT_SESSION_ID
+    current_store = get_session_store(sid)
 
     gemini_key, groq_key = resolve_credentials(x_gemini_key, x_groq_key, client_api_key)
     llm = LLMService(google_api_key=gemini_key, groq_api_key=groq_key)
@@ -112,14 +146,22 @@ async def upload_papers(
         meta = PDFParser.heuristic_paper_metadata(pages_data, f.filename)
         chunks = PDFParser.create_chunks(
             pages_data, 
-            chunk_size=900, 
-            chunk_overlap=150, 
+            chunk_size=chunk_size, 
+            chunk_overlap=chunk_overlap, 
             filename=f.filename, 
-            paper_id=paper_id
+            paper_id=paper_id,
+            strategy=chunking_strategy or "balanced"
         )
 
         vector_index = VectorIndex(chunks, google_api_key=gemini_key)
-        sample_text = "\n\n".join([f"--- Page {p['page']} ---\n{p['text']}" for p in pages_data[:6]])
+        
+        # Intelligent sampling: pick Intro pages and Conclusion/Discussion page if available
+        if len(pages_data) > 6:
+            picked_indices = [0, 1, 2, 3, len(pages_data) - 2]
+            sample_pages = [pages_data[i] for i in picked_indices if i < len(pages_data)]
+        else:
+            sample_pages = pages_data[:6]
+        sample_text = "\n\n".join([f"--- Page {p['page']} ---\n{p['text']}" for p in sample_pages])
         breakdown = llm.analyze_paper(meta, sample_text)
 
         paper_obj = {
@@ -128,6 +170,7 @@ async def upload_papers(
             "file_size": len(file_bytes),
             "total_pages": len(pages_data),
             "total_chunks": len(chunks),
+            "chunking_strategy": chunking_strategy or "balanced",
             "metadata": meta,
             "breakdown": breakdown,
             "chunks": chunks,
@@ -137,14 +180,14 @@ async def upload_papers(
             "uploaded_at": time.time()
         }
 
-        PAPERS_STORE[paper_id] = paper_obj
+        current_store[paper_id] = paper_obj
         processed_papers.append(paper_obj)
         all_chunks.extend(chunks)
 
     if not processed_papers:
         raise HTTPException(status_code=400, detail="Could not extract readable text from any uploaded PDF.")
 
-    # If multiple papers are present, create or update a unified cross-corpus session "all"
+    # If multiple papers are present in this user's session, create or update a unified cross-corpus session "all"
     if len(processed_papers) > 1:
         corpus_summary = (
             f"This collective dossier synthesizes {len(processed_papers)} academic research papers: "
@@ -182,7 +225,7 @@ async def upload_papers(
             ]
         }
 
-        PAPERS_STORE["all"] = {
+        current_store["all"] = {
             "paper_id": "all",
             "filename": f"All Papers ({len(processed_papers)} Documents)",
             "file_size": sum(p["file_size"] for p in processed_papers),
@@ -202,6 +245,7 @@ async def upload_papers(
                 "filename": p["filename"],
                 "total_pages": p["total_pages"],
                 "total_chunks": p["total_chunks"],
+                "chunking_strategy": p.get("chunking_strategy", "balanced"),
                 "breakdown": p["breakdown"],
                 "pages_data": p.get("pages_data", []),
                 "has_pdf": "pdf_bytes" in p
@@ -209,27 +253,31 @@ async def upload_papers(
             for p in processed_papers
         ],
         "active_paper_id": "all" if len(processed_papers) > 1 else processed_papers[0]["paper_id"],
-        "has_multiple": len(processed_papers) > 1
+        "has_multiple": len(processed_papers) > 1,
+        "session_id": sid
     }
 
 @app.get("/api/papers")
-async def list_papers():
+async def list_papers(x_session_id: Optional[str] = Header(None)):
+    store = get_session_store(x_session_id)
     return [
         {
             "paper_id": p["paper_id"],
             "filename": p["filename"],
             "title": p["breakdown"].get("title", p["filename"]),
             "total_pages": p["total_pages"],
+            "total_chunks": p.get("total_chunks", len(p.get("chunks", []))),
             "uploaded_at": p["uploaded_at"]
         }
-        for pid, p in PAPERS_STORE.items() if pid != "all"
+        for pid, p in store.items() if pid != "all"
     ]
 
 @app.get("/api/paper/{paper_id}")
-async def get_paper(paper_id: str):
-    if paper_id not in PAPERS_STORE:
+async def get_paper(paper_id: str, x_session_id: Optional[str] = Header(None)):
+    store = get_session_store(x_session_id)
+    p = find_paper_anywhere(paper_id, store)
+    if not p:
         raise HTTPException(status_code=404, detail="Paper not found.")
-    p = PAPERS_STORE[paper_id]
     return {
         "paper_id": p["paper_id"],
         "filename": p["filename"],
@@ -241,45 +289,57 @@ async def get_paper(paper_id: str):
     }
 
 @app.get("/api/paper/{paper_id}/pdf")
-async def get_paper_pdf(paper_id: str):
-    if paper_id not in PAPERS_STORE or "pdf_bytes" not in PAPERS_STORE[paper_id]:
+async def get_paper_pdf(paper_id: str, x_session_id: Optional[str] = Header(None)):
+    store = get_session_store(x_session_id)
+    p = find_paper_anywhere(paper_id, store)
+    if not p or "pdf_bytes" not in p:
         raise HTTPException(status_code=404, detail="PDF binary not available for this session.")
     return Response(
-        content=PAPERS_STORE[paper_id]["pdf_bytes"],
+        content=p["pdf_bytes"],
         media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{PAPERS_STORE[paper_id]["filename"]}"'}
+        headers={"Content-Disposition": f'inline; filename="{p["filename"]}"'}
     )
 
 @app.post("/api/chat")
 async def chat_with_paper(
     req: ChatRequest,
     x_gemini_key: Optional[str] = Header(None),
-    x_groq_key: Optional[str] = Header(None)
+    x_groq_key: Optional[str] = Header(None),
+    x_session_id: Optional[str] = Header(None)
 ):
+    sid = req.session_id or x_session_id or DEFAULT_SESSION_ID
+    store = get_session_store(sid)
     target_id = req.paper_id or "all"
-    if target_id not in PAPERS_STORE:
-        if "all" in PAPERS_STORE:
+
+    paper = find_paper_anywhere(target_id, store)
+    if not paper:
+        if "all" in store:
             target_id = "all"
-        elif PAPERS_STORE:
-            target_id = next(iter(PAPERS_STORE))
+            paper = store["all"]
+        elif store:
+            target_id = next(iter(store))
+            paper = store[target_id]
         else:
             raise HTTPException(status_code=404, detail="No active paper session found. Please upload a paper.")
 
-    paper = PAPERS_STORE[target_id]
     vector_index: VectorIndex = paper["vector_index"]
     start_time = time.time()
 
-    top_chunks = vector_index.query(req.message, top_k=5)
+    top_k_val = min(max(req.top_k or 5, 1), 30)
+    top_chunks = vector_index.query(req.message, top_k=top_k_val)
+
     if req.highlighted_text:
         hl_chunk = {
             "chunk_id": 9999,
             "page": req.highlight_page or 1,
             "filename": paper.get("filename", ""),
+            "section": "User Highlighted Passage",
             "text": f"USER HIGHLIGHTED PASSAGE FOR INQUIRY:\n\"{req.highlighted_text}\"",
             "is_reference": False,
             "score": 1.0
         }
-        top_chunks = [hl_chunk] + [c for c in top_chunks if c.get("text") != req.highlighted_text][:4]
+        top_chunks = [hl_chunk] + [c for c in top_chunks if c.get("text") != req.highlighted_text][:top_k_val - 1]
+
     gemini_key, groq_key = resolve_credentials(x_gemini_key, x_groq_key, req.api_key)
 
     llm = LLMService(
@@ -300,17 +360,22 @@ async def chat_with_paper(
     result["response_time"] = elapsed
     result["model_used"] = req.model
     result["target_paper_id"] = target_id
+    result["retrieved_chunks_count"] = len(top_chunks)
+    result["top_k_requested"] = top_k_val
     return result
 
 @app.post("/api/export")
-async def export_analysis(req: ExportRequest):
+async def export_analysis(req: ExportRequest, x_session_id: Optional[str] = Header(None)):
+    sid = req.session_id or x_session_id or DEFAULT_SESSION_ID
+    store = get_session_store(sid)
     target_id = req.paper_id or "all"
-    if target_id not in PAPERS_STORE:
-        target_id = next(iter(PAPERS_STORE)) if PAPERS_STORE else None
-    if not target_id:
+    paper = find_paper_anywhere(target_id, store)
+    if not paper and store:
+        target_id = next(iter(store))
+        paper = store[target_id]
+    if not paper:
         raise HTTPException(status_code=404, detail="Paper not found.")
 
-    paper = PAPERS_STORE[target_id]
     bd = paper["breakdown"]
     title = bd.get("title", paper["filename"])
     
@@ -361,10 +426,15 @@ async def export_analysis(req: ExportRequest):
     )
 
 @app.delete("/api/paper/{paper_id}")
-async def delete_paper(paper_id: str):
-    if paper_id in PAPERS_STORE:
-        del PAPERS_STORE[paper_id]
+async def delete_paper(paper_id: str, x_session_id: Optional[str] = Header(None)):
+    store = get_session_store(x_session_id)
+    if paper_id in store:
+        del store[paper_id]
         return {"status": "success", "message": f"Paper {paper_id} removed."}
+    for s in SESSIONS_STORE.values():
+        if paper_id in s:
+            del s[paper_id]
+            return {"status": "success", "message": f"Paper {paper_id} removed."}
     return {"status": "not_found"}
 
 if __name__ == "__main__":

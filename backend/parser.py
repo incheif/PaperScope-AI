@@ -1,6 +1,6 @@
 import io
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pypdf import PdfReader
 
 class PDFParser:
@@ -27,18 +27,47 @@ class PDFParser:
 
         return pages_data
 
+    SECTION_PATTERNS = [
+        (r'^(?:[0-9IVXLCDM]+\.?\s*)?abstract\b', "Abstract"),
+        (r'^(?:[0-9IVXLCDM]+\.?\s*)?introduction\b', "Introduction"),
+        (r'^(?:[0-9IVXLCDM]+\.?\s*)?(?:related\s+work|background|prior\s+art)\b', "Related Work"),
+        (r'^(?:[0-9IVXLCDM]+\.?\s*)?(?:method(?:ology)?|proposed\s+(?:method|framework|approach|model)|architecture|system\s+design|formulation)\b', "Methodology"),
+        (r'^(?:[0-9IVXLCDM]+\.?\s*)?(?:experiments?|evaluation|results?|empirical\s+analysis|benchmarks?)\b', "Experiments & Results"),
+        (r'^(?:[0-9IVXLCDM]+\.?\s*)?(?:discussion|limitations|broader\s+impact)\b', "Discussion & Limitations"),
+        (r'^(?:[0-9IVXLCDM]+\.?\s*)?(?:conclusions?(?:\s+and\s+future\s+work)?|concluding\s+remarks|summary)\b', "Conclusion"),
+        (r'^(?:references|bibliography|works\s+cited|literature\s+cited)\b', "References"),
+    ]
+
     @staticmethod
     def create_chunks(
         pages_data: List[Dict[str, Any]], 
-        chunk_size: int = 900, 
-        chunk_overlap: int = 150,
+        chunk_size: Optional[int] = None, 
+        chunk_overlap: Optional[int] = None,
         filename: str = "",
-        paper_id: str = ""
+        paper_id: str = "",
+        strategy: str = "balanced"
     ) -> List[Dict[str, Any]]:
+        # Resolve strategy profiles
+        clean_strategy = (strategy or "balanced").lower().strip()
+        if clean_strategy == "fine_grained":
+            target_size = chunk_size or 450
+            target_overlap = chunk_overlap or 80
+        elif clean_strategy == "coarse":
+            target_size = chunk_size or 1800
+            target_overlap = chunk_overlap or 300
+        elif clean_strategy == "section_aware":
+            target_size = chunk_size or 850
+            target_overlap = chunk_overlap or 120
+        else:
+            clean_strategy = "balanced"
+            target_size = chunk_size or 900
+            target_overlap = chunk_overlap or 150
+
         chunks = []
         chunk_id = 0
         total_pages = len(pages_data)
         in_references = False
+        current_section = "Introduction / Front Matter"
 
         # Clean filename to avoid awkward trailing punctuation or .pdf clutter
         clean_filename = re.sub(r'\.pdf$', '', filename, flags=re.I).strip()
@@ -54,10 +83,10 @@ class PDFParser:
             if page_num > max(2, int(total_pages * 0.45)):
                 if re.search(r'(?:^|\n)\s*(?:references|bibliography|works cited|literature cited)\b', text, re.I):
                     in_references = True
+                    current_section = "References"
                 elif len(re.findall(r'(?:^|\n)\s*\[\d{1,3}\]\s+[A-Z]', text)) >= 3:
                     in_references = True
-
-            is_ref = in_references or bool(re.search(r'^\s*(?:references|bibliography)\s*$', text, re.I | re.MULTILINE))
+                    current_section = "References"
 
             paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
             if len(paragraphs) <= 1:
@@ -65,7 +94,38 @@ class PDFParser:
 
             current_chunk = ""
             for para in paragraphs:
-                if len(current_chunk) + len(para) + 1 <= chunk_size:
+                # Check for section header transitions if section_aware or general parsing
+                new_section_found = None
+                first_line = para.split("\n")[0].strip().lower()
+                for pat, sec_name in PDFParser.SECTION_PATTERNS:
+                    if re.search(pat, first_line, re.I):
+                        new_section_found = sec_name
+                        break
+
+                if new_section_found:
+                    # Flush previous chunk before entering new section to maintain boundary isolation
+                    if current_chunk:
+                        chunk_id += 1
+                        is_ref = in_references or (current_section == "References")
+                        chunks.append({
+                            "chunk_id": chunk_id,
+                            "page": page_num,
+                            "text": current_chunk.strip(),
+                            "filename": clean_filename,
+                            "paper_id": paper_id,
+                            "is_reference": is_ref,
+                            "section": current_section,
+                            "strategy": clean_strategy
+                        })
+                        current_chunk = ""
+
+                    current_section = new_section_found
+                    if current_section == "References":
+                        in_references = True
+
+                is_ref = in_references or (current_section == "References")
+
+                if len(current_chunk) + len(para) + 1 <= target_size:
                     current_chunk += (" " if current_chunk else "") + para
                 else:
                     if current_chunk:
@@ -77,13 +137,14 @@ class PDFParser:
                             "filename": clean_filename,
                             "paper_id": paper_id,
                             "is_reference": is_ref,
-                            "section": "References" if is_ref else "Main Text"
+                            "section": current_section,
+                            "strategy": clean_strategy
                         })
-                    
-                    if len(para) > chunk_size:
+
+                    if len(para) > target_size:
                         start = 0
                         while start < len(para):
-                            end = start + chunk_size
+                            end = start + target_size
                             chunk_id += 1
                             chunks.append({
                                 "chunk_id": chunk_id,
@@ -92,15 +153,17 @@ class PDFParser:
                                 "filename": clean_filename,
                                 "paper_id": paper_id,
                                 "is_reference": is_ref,
-                                "section": "References" if is_ref else "Main Text"
+                                "section": current_section,
+                                "strategy": clean_strategy
                             })
-                            start += (chunk_size - chunk_overlap)
+                            start += (target_size - target_overlap)
                         current_chunk = ""
                     else:
                         current_chunk = para
 
             if current_chunk:
                 chunk_id += 1
+                is_ref = in_references or (current_section == "References")
                 chunks.append({
                     "chunk_id": chunk_id,
                     "page": page_num,
@@ -108,7 +171,8 @@ class PDFParser:
                     "filename": clean_filename,
                     "paper_id": paper_id,
                     "is_reference": is_ref,
-                    "section": "References" if is_ref else "Main Text"
+                    "section": current_section,
+                    "strategy": clean_strategy
                 })
 
         return chunks

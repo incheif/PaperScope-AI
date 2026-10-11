@@ -43,11 +43,14 @@ interface Paper {
   filename: string;
   total_pages: number;
   total_chunks: number;
+  chunking_strategy?: string;
   breakdown: PaperBreakdown;
   pages_data?: PageData[];
   pdfUrl?: string;
   has_pdf?: boolean;
 }
+
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8001';
 
 interface HighlightSelection {
   text: string;
@@ -162,7 +165,7 @@ export default function Home() {
   const [highlightSelection, setHighlightSelection] = useState<HighlightSelection | null>(null);
   const [activeQuote, setActiveQuote] = useState<string | null>(null);
 
-  // Settings & Modals
+  // Settings, Model & Session State
   const [showApiModal, setShowApiModal] = useState(false);
   const [geminiKey, setGeminiKey] = useState('');
   const [groqKey, setGroqKey] = useState('');
@@ -170,16 +173,45 @@ export default function Home() {
   const [isNightMode, setIsNightMode] = useState(false);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
 
+  // User-configurable Retrieval Depth & Chunking Strategy
+  const [topK, setTopK] = useState<number>(5);
+  const [chunkingStrategy, setChunkingStrategy] = useState<'balanced' | 'fine_grained' | 'coarse' | 'section_aware'>('balanced');
+  const [sessionId, setSessionId] = useState<string>('');
+
+  // Top API Key Notice Bar & Suggestion Panel Dismissal States
+  const [showApiNotice, setShowApiNotice] = useState(true);
+  const [dismissedMsgSuggestions, setDismissedMsgSuggestions] = useState<Record<number, boolean>>({});
+  const [dismissedPaperSuggestions, setDismissedPaperSuggestions] = useState<Record<string, boolean>>({});
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load API keys from localStorage
+  // Load API keys, session, and preferences from localStorage
   useEffect(() => {
     const savedGemini = localStorage.getItem('gemini_api_key') || '';
     const savedGroq = localStorage.getItem('groq_api_key') || '';
     const savedModel = localStorage.getItem('selected_model') || 'gemini-2.5-flash';
     const savedNight = localStorage.getItem('newspaper_night_mode') === 'true';
+
+    // Unique per-user session isolation
+    let sid = localStorage.getItem('paperscope_session_id') || '';
+    if (!sid) {
+      sid = 'session_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
+      localStorage.setItem('paperscope_session_id', sid);
+    }
+    setSessionId(sid);
+
+    const savedTopK = localStorage.getItem('paperscope_top_k');
+    if (savedTopK) {
+      const parsedK = parseInt(savedTopK, 10);
+      if (!isNaN(parsedK) && parsedK > 0) setTopK(parsedK);
+    }
+
+    const savedStrategy = localStorage.getItem('paperscope_chunking_strategy');
+    if (savedStrategy && ['balanced', 'fine_grained', 'coarse', 'section_aware'].includes(savedStrategy)) {
+      setChunkingStrategy(savedStrategy as any);
+    }
 
     if (savedGemini) setGeminiKey(savedGemini);
     if (savedGroq) setGroqKey(savedGroq);
@@ -242,6 +274,8 @@ export default function Home() {
     localStorage.setItem('gemini_api_key', geminiKey.trim());
     localStorage.setItem('groq_api_key', groqKey.trim());
     localStorage.setItem('selected_model', selectedModel);
+    localStorage.setItem('paperscope_top_k', String(topK));
+    localStorage.setItem('paperscope_chunking_strategy', chunkingStrategy);
     setShowApiModal(false);
   };
 
@@ -270,8 +304,12 @@ export default function Home() {
       const headers: Record<string, string> = {};
       if (geminiKey.trim()) headers['x-gemini-key'] = geminiKey.trim();
       if (groqKey.trim()) headers['x-groq-key'] = groqKey.trim();
+      if (sessionId) headers['x-session-id'] = sessionId;
 
-      const res = await fetch('http://localhost:8000/api/upload', {
+      formData.append('chunking_strategy', chunkingStrategy);
+      if (sessionId) formData.append('session_id', sessionId);
+
+      const res = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
         headers,
         body: formData
@@ -285,7 +323,7 @@ export default function Home() {
       const data = await res.json();
       const updatedPapers: Paper[] = data.papers.map((p: any) => ({
         ...p,
-        pdfUrl: localPdfMap[p.filename] || `http://localhost:8000/api/paper/${p.paper_id}/pdf`
+        pdfUrl: localPdfMap[p.filename] || `${API_BASE}/api/paper/${p.paper_id}/pdf`
       }));
 
       setPapers(updatedPapers);
@@ -295,8 +333,8 @@ export default function Home() {
         {
           role: 'assistant',
           content: data.has_multiple
-            ? `Indexed ${updatedPapers.length} research manuscripts. You can inspect individual papers or query the unified multi-document corpus. Click "Original PDF" to view the visual layout or highlight any passage to interrogate it.`
-            : `Indexed "${updatedPapers[0]?.filename}" (${updatedPapers[0]?.total_pages} pages). High-speed vector index is active. Click "Original PDF" to view the manuscript or highlight any section to ask questions.`,
+            ? `Indexed ${updatedPapers.length} research manuscripts (${chunkingStrategy.replace('_', ' ').toUpperCase()} chunking). You can inspect individual papers or query the unified multi-document corpus. Click "Original PDF" to view the visual layout or highlight any passage to interrogate it.`
+            : `Indexed "${updatedPapers[0]?.filename}" (${updatedPapers[0]?.total_pages} pages, ${chunkingStrategy.replace('_', ' ').toUpperCase()} chunking). High-speed vector index is active. Click "Original PDF" to view the manuscript or highlight any section to ask questions.`,
           cross_questions: [
             'What is the primary architectural innovation introduced?',
             'How do the benchmark results compare to established baselines?',
@@ -310,6 +348,17 @@ export default function Home() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleResetHome = () => {
+    setPapers([]);
+    setActivePaperId('all');
+    setMessages([]);
+    setActiveQuote(null);
+    setHighlightSelection(null);
+    setViewMode('split');
+    setReaderMode('digest');
+    setUploadError(null);
   };
 
   const loadDemoPapers = () => {
@@ -378,8 +427,9 @@ export default function Home() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (geminiKey.trim()) headers['x-gemini-key'] = geminiKey.trim();
       if (groqKey.trim()) headers['x-groq-key'] = groqKey.trim();
+      if (sessionId) headers['x-session-id'] = sessionId;
 
-      const res = await fetch('http://localhost:8000/api/chat', {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -390,6 +440,8 @@ export default function Home() {
           provider: selectedModel.includes('llama') ? 'groq' : 'gemini',
           model: selectedModel,
           api_key: geminiKey || groqKey,
+          top_k: topK,
+          session_id: sessionId,
           history: messages.slice(-4).map(m => ({ role: m.role, content: m.content }))
         })
       });
@@ -419,7 +471,7 @@ export default function Home() {
           cross_questions: [
             "Check Gemini API key validity in Settings.",
             "Retry with Gemini 2.5 Flash.",
-            "Inspect backend server logs on port 8000."
+            "Inspect backend server logs."
           ]
         }
       ]);
@@ -448,11 +500,15 @@ export default function Home() {
 
   const handleExportMarkdown = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/export', {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (sessionId) headers['x-session-id'] = sessionId;
+
+      const res = await fetch(`${API_BASE}/api/export`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           paper_id: activePaperId,
+          session_id: sessionId,
           chat_history: messages.map(m => ({ role: m.role, content: m.content }))
         })
       });
@@ -485,20 +541,20 @@ export default function Home() {
             onClick={handleAskAboutHighlight}
             title="Quote this highlighted text in chat"
           >
-            💬 Ask About Selection
+            Ask About Selection
           </button>
           <button
             className={styles.highlightBtnSecondary}
             onClick={handleExplainHighlight}
             title="Immediately explain this passage"
           >
-            ⚡ Explain Passage
+            Explain Passage
           </button>
           <button
             className={styles.highlightBtnClose}
             onClick={() => setHighlightSelection(null)}
           >
-            ✕
+            ×
           </button>
         </div>
       )}
@@ -515,7 +571,7 @@ export default function Home() {
           </div>
           <div className={styles.earRight}>
             <button className={styles.earBtn} onClick={toggleNightMode}>
-              {isNightMode ? '☀ DAY MODE' : '☾ NIGHT'}
+              {isNightMode ? 'DAY MODE' : 'NIGHT MODE'}
             </button>
             <span className={styles.earDot}>•</span>
             <button className={styles.earBtn} onClick={() => setShowApiModal(true)}>
@@ -525,7 +581,14 @@ export default function Home() {
         </div>
 
         <div className={styles.centerMasthead}>
-          <h1 className={styles.newspaperLogo}>THE SCHOLARLY GAZETTE</h1>
+          <h1
+            className={styles.newspaperLogo}
+            onClick={handleResetHome}
+            style={{ cursor: 'pointer' }}
+            title="Return to Home and start again"
+          >
+            PaperScope AI
+          </h1>
           <p className={styles.newspaperTagline}>
             Literature Digest & Retrieval-Augmented Cross-Paper Research Platform
           </p>
@@ -533,70 +596,154 @@ export default function Home() {
 
         {/* View Switcher Navigation */}
         <div className={styles.navBar}>
-          <div className={styles.viewModeNav}>
-            <button
-              className={`${styles.viewModeBtn} ${viewMode === 'split' ? styles.viewModeBtnActive : ''}`}
-              onClick={() => setViewMode('split')}
-            >
-              📰 Split View
-            </button>
-            <button
-              className={`${styles.viewModeBtn} ${viewMode === 'chatgpt' ? styles.viewModeBtnActive : ''}`}
-              onClick={() => setViewMode('chatgpt')}
-            >
-              💬 ChatGPT Mode
-            </button>
-            <button
-              className={`${styles.viewModeBtn} ${viewMode === 'article' ? styles.viewModeBtnActive : ''}`}
-              onClick={() => setViewMode('article')}
-            >
-              Article View
-            </button>
-          </div>
+          {papers.length > 0 ? (
+            <div className={styles.viewModeNav}>
+              <button
+                className={styles.viewModeBtn}
+                onClick={handleResetHome}
+                title="Return to Home and start again"
+                id="btn-nav-home"
+              >
+                Home
+              </button>
+              <button
+                className={`${styles.viewModeBtn} ${viewMode === 'split' ? styles.viewModeBtnActive : ''}`}
+                onClick={() => setViewMode('split')}
+              >
+                Split View
+              </button>
+              <button
+                className={`${styles.viewModeBtn} ${viewMode === 'chatgpt' ? styles.viewModeBtnActive : ''}`}
+                onClick={() => setViewMode('chatgpt')}
+              >
+                ChatGPT Mode
+              </button>
+              <button
+                className={`${styles.viewModeBtn} ${viewMode === 'article' ? styles.viewModeBtnActive : ''}`}
+                onClick={() => setViewMode('article')}
+              >
+                Article View
+              </button>
+            </div>
+          ) : (
+            <div className={styles.viewModeNav}>
+              <button
+                className={`${styles.viewModeBtn} ${styles.viewModeBtnActive}`}
+                onClick={handleResetHome}
+                title="Home: Document Ingestion"
+              >
+                Home
+              </button>
+            </div>
+          )}
 
           <div className={styles.actionGroup}>
-            {papers.length === 0 ? (
+            {papers.length > 0 && (
               <button
                 className="btn btn-secondary btn-sm"
-                onClick={loadDemoPapers}
-                id="btn-demo-paper"
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload additional research papers"
               >
-                Sample Papers (2x)
+                + Add Papers
               </button>
-            ) : (
-              <>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Upload additional research papers"
-                >
-                  + Add Papers
-                </button>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleExportMarkdown}
-                  id="btn-export-markdown"
-                >
-                  Export Report
-                </button>
-              </>
             )}
           </div>
         </div>
       </header>
+
+      {/* Top API Key Configuration Notice Bar */}
+      {showApiNotice && (
+        <div className={styles.apiNoticeBanner}>
+          <div className={styles.apiNoticeContent}>
+            <span className={styles.apiNoticeText}>
+              Note: Configure your Gemini API key in the top navigation bar to enable full academic reasoning and synthesis.
+            </span>
+            <button
+              type="button"
+              className={styles.apiNoticeBtn}
+              onClick={() => setShowApiModal(true)}
+            >
+              Configure Key
+            </button>
+          </div>
+          <button
+            type="button"
+            className={styles.apiNoticeDismiss}
+            onClick={() => setShowApiNotice(false)}
+            title="Dismiss notice"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Main Container */}
       <main className={styles.mainContainer}>
         {/* Upload State (Empty) */}
         {papers.length === 0 && (
           <section className={styles.uploadHero}>
-            <span className="badge">Academic Literature Corpus</span>
-            <h2 className={styles.heroHeadline}>
-              Multi-Paper Research Analysis & Continuous Reading
-            </h2>
-            <p className={styles.heroDek}>
-              Upload single or multiple research papers simultaneously. Examine individual monographs or perform comparative cross-document interrogations with grounded citations, native PDF viewing, and section-level highlight inquiries.
-            </p>
+            {/* Chunking Strategy Ingestion Profile Selector */}
+            <div className={styles.strategyControlWrapper}>
+              <div className={styles.strategyHeaderRow}>
+                <span>Ingestion Chunking Strategy:</span>
+              </div>
+              <div className={styles.strategyButtonGroup}>
+                <button
+                  type="button"
+                  className={`${styles.strategyBtn} ${chunkingStrategy === 'balanced' ? styles.strategyBtnActive : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChunkingStrategy('balanced');
+                    localStorage.setItem('paperscope_chunking_strategy', 'balanced');
+                  }}
+                  title="Standard paragraph chunking with 150-char overlap"
+                >
+                  Balanced Paragraph (900c)
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.strategyBtn} ${chunkingStrategy === 'fine_grained' ? styles.strategyBtnActive : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChunkingStrategy('fine_grained');
+                    localStorage.setItem('paperscope_chunking_strategy', 'fine_grained');
+                  }}
+                  title="Granular passage chunks for precise benchmark and metric retrieval"
+                >
+                  Fine-Grained (450c)
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.strategyBtn} ${chunkingStrategy === 'coarse' ? styles.strategyBtnActive : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChunkingStrategy('coarse');
+                    localStorage.setItem('paperscope_chunking_strategy', 'coarse');
+                  }}
+                  title="Extended context blocks for theoretical proofs and full algorithms"
+                >
+                  Coarse Context (1800c)
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.strategyBtn} ${chunkingStrategy === 'section_aware' ? styles.strategyBtnActive : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChunkingStrategy('section_aware');
+                    localStorage.setItem('paperscope_chunking_strategy', 'section_aware');
+                  }}
+                  title="Strict isolation respecting paper headings (Abstract, Intro, Methods, Results, Conclusion)"
+                >
+                  Section-Aware Academic
+                </button>
+              </div>
+              <div className={styles.strategyDescription}>
+                {chunkingStrategy === 'balanced' && '• Balanced 900-char chunks with 150-char overlap. Recommended for general scientific publications.'}
+                {chunkingStrategy === 'fine_grained' && '• High-precision 450-char chunks. Best for isolating exact metrics, statistical tables, and benchmark ablation values.'}
+                {chunkingStrategy === 'coarse' && '• Broad 1800-char context windows. Best for multi-paragraph theoretical frameworks and extended mathematical proofs.'}
+                {chunkingStrategy === 'section_aware' && '• Structural section isolation. Guarantees chunks never bleed across Abstract, Intro, Methodology, and Conclusion boundaries.'}
+              </div>
+            </div>
 
             <div
               className={styles.dropzone}
@@ -666,7 +813,7 @@ export default function Home() {
                     onClick={() => setActivePaperId(p.paper_id)}
                     title={p.breakdown.title}
                   >
-                    📄 Paper {idx + 1}: {p.filename.slice(0, 24)}...
+                    Paper {idx + 1}: {p.filename.slice(0, 24)}...
                   </button>
                 ))}
               </div>
@@ -706,7 +853,7 @@ export default function Home() {
                         onClick={() => setActivePaperId(p.paper_id)}
                         title={p.breakdown.title}
                       >
-                        📄 {idx + 1}. {p.filename.replace('.pdf', '')} ({p.total_pages}p)
+                        {idx + 1}. {p.filename.replace('.pdf', '')} ({p.total_pages}p)
                       </button>
                     ))}
                   </div>
@@ -715,6 +862,14 @@ export default function Home() {
                     <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', marginBottom: '8px' }}>
                       ACTIVE MODEL: <strong>{selectedModel}</strong>
                     </div>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '100%', marginBottom: '8px' }}
+                      onClick={handleResetHome}
+                      title="Return to Home and start again"
+                    >
+                      Home (Start Again)
+                    </button>
                     <button
                       className="btn btn-secondary btn-sm"
                       style={{ width: '100%' }}
@@ -737,6 +892,16 @@ export default function Home() {
                   </div>
 
                   <div className={styles.chatFeed}>
+                    {messages.length === 0 && (
+                      <div className={styles.emptyChatPrompt}>
+                        <div className={styles.chatNoteNotice}>
+                          Note: Configure your Gemini API key in the top navigation bar to enable full academic reasoning and synthesis.
+                        </div>
+                        <div className={styles.emptyChatHelp}>
+                          Inquire about methodology, baseline benchmarks, critical limitations, or highlight any text passage to quote.
+                        </div>
+                      </div>
+                    )}
                     {messages.map((m, idx) => (
                       <div
                         key={idx}
@@ -769,9 +934,19 @@ export default function Home() {
                         )}
 
                         {/* Interactive Cross-Questions */}
-                        {m.cross_questions && m.cross_questions.length > 0 && (
+                        {m.cross_questions && m.cross_questions.length > 0 && !dismissedMsgSuggestions[idx] && (
                           <div className={styles.crossQuestionsBox}>
-                            <div className={styles.crossQuestionsLabel}>PROBING CROSS-EXAMINATION QUESTIONS:</div>
+                            <div className={styles.crossQuestionsHeader}>
+                              <div className={styles.crossQuestionsLabel}>SUGGESTED QUESTIONS / FOLLOW-UPS:</div>
+                              <button
+                                type="button"
+                                className={styles.closeSuggestionBtn}
+                                onClick={() => setDismissedMsgSuggestions((prev) => ({ ...prev, [idx]: true }))}
+                                title="Close suggestions"
+                              >
+                                ×
+                              </button>
+                            </div>
                             <div className={styles.crossQuestionsList}>
                               {m.cross_questions.map((q, qIdx) => (
                                 <button
@@ -798,10 +973,15 @@ export default function Home() {
                         <strong>Targeted Section:</strong> &ldquo;{activeQuote}&rdquo;
                       </span>
                       <button className={styles.activeQuoteDismiss} onClick={() => setActiveQuote(null)}>
-                        ✕ Clear
+                        Clear
                       </button>
                     </div>
                   )}
+
+                  {/* Pre-prompt Note Before Asking Questions */}
+                  <div className={styles.inputPrePromptNote}>
+                    Note: Configure your Gemini API key in the top navigation bar to enable full academic reasoning and synthesis.
+                  </div>
 
                   {/* Prompt Box */}
                   <div className={styles.chatInputForm}>
@@ -979,6 +1159,42 @@ export default function Home() {
                         </div>
                       </section>
 
+                      {/* Suggested Inquiries */}
+                      {currentPaper.breakdown.suggested_questions &&
+                        currentPaper.breakdown.suggested_questions.length > 0 &&
+                        !dismissedPaperSuggestions[currentPaper.paper_id] && (
+                        <section className={styles.storySection}>
+                          <h3 className={styles.sectionHeading}>VI. Recommended Inquiry Prompts</h3>
+                          <div className={styles.crossQuestionsBox}>
+                            <div className={styles.crossQuestionsHeader}>
+                              <div className={styles.crossQuestionsLabel}>SUGGESTED QUESTIONS:</div>
+                              <button
+                                type="button"
+                                className={styles.closeSuggestionBtn}
+                                onClick={() =>
+                                  setDismissedPaperSuggestions((prev) => ({ ...prev, [currentPaper.paper_id]: true }))
+                                }
+                                title="Close suggestions"
+                              >
+                                ×
+                              </button>
+                            </div>
+                            <div className={styles.crossQuestionsList}>
+                              {currentPaper.breakdown.suggested_questions.map((q, qIdx) => (
+                                <button
+                                  key={qIdx}
+                                  className={styles.crossQuestionPill}
+                                  onClick={() => handleSendMessage(q)}
+                                  title="Click to ask this question in chat"
+                                >
+                                  → {q}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </section>
+                      )}
+
                       {/* BibTeX Citation */}
                       {currentPaper.breakdown.bibtex && (
                         <section className={styles.storySection}>
@@ -1001,6 +1217,16 @@ export default function Home() {
                     </div>
 
                     <div className={styles.chatFeed}>
+                      {messages.length === 0 && (
+                        <div className={styles.emptyChatPrompt}>
+                          <div className={styles.chatNoteNotice}>
+                            Note: Configure your Gemini API key in the top navigation bar to enable full academic reasoning and synthesis.
+                          </div>
+                          <div className={styles.emptyChatHelp}>
+                            Inquire about methodology, baseline benchmarks, or select any text passage in the reader to quote.
+                          </div>
+                        </div>
+                      )}
                       {messages.map((m, idx) => (
                         <div
                           key={idx}
@@ -1033,9 +1259,19 @@ export default function Home() {
                           )}
 
                           {/* Interactive Cross-Questions */}
-                          {m.cross_questions && m.cross_questions.length > 0 && (
+                          {m.cross_questions && m.cross_questions.length > 0 && !dismissedMsgSuggestions[idx] && (
                             <div className={styles.crossQuestionsBox}>
-                              <div className={styles.crossQuestionsLabel}>FOLLOW-UP CROSS QUESTIONS:</div>
+                              <div className={styles.crossQuestionsHeader}>
+                                <div className={styles.crossQuestionsLabel}>SUGGESTED QUESTIONS / FOLLOW-UPS:</div>
+                                <button
+                                  type="button"
+                                  className={styles.closeSuggestionBtn}
+                                  onClick={() => setDismissedMsgSuggestions((prev) => ({ ...prev, [idx]: true }))}
+                                  title="Close suggestions"
+                                >
+                                  ×
+                                </button>
+                              </div>
                               <div className={styles.crossQuestionsList}>
                                 {m.cross_questions.map((q, qIdx) => (
                                   <button
@@ -1062,10 +1298,41 @@ export default function Home() {
                           <strong>Quoted:</strong> &ldquo;{activeQuote}&rdquo;
                         </span>
                         <button className={styles.activeQuoteDismiss} onClick={() => setActiveQuote(null)}>
-                          ✕
+                          ×
                         </button>
                       </div>
                     )}
+
+                    {/* Top-K Retrieval Depth Selector */}
+                    <div className={styles.topKControlBar}>
+                      <span className={styles.topKLabel}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '3px' }}>
+                          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                        </svg>
+                        Passages to Retrieve:
+                      </span>
+                      <div className={styles.topKButtonGroup}>
+                        {[3, 5, 10, 15, 20].map((k) => (
+                          <button
+                            key={k}
+                            type="button"
+                            className={`${styles.topKPill} ${topK === k ? styles.topKPillActive : ''}`}
+                            onClick={() => {
+                              setTopK(k);
+                              localStorage.setItem('paperscope_top_k', String(k));
+                            }}
+                            title={`Retrieve top ${k} most relevant passages for inquiry synthesis`}
+                          >
+                            Top {k}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Pre-prompt Note Before Asking Questions */}
+                    <div className={styles.inputPrePromptNote}>
+                      Note: Configure your Gemini API key in the top navigation bar to enable full academic reasoning and synthesis.
+                    </div>
 
                     {/* Prompt Box */}
                     <div className={styles.chatInputForm}>
@@ -1110,7 +1377,7 @@ export default function Home() {
                 </span>
                 <h3 className={styles.modalTitle} style={{ marginTop: '4px' }}>Archival Excerpt</h3>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setSelectedCitation(null)}>✕</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setSelectedCitation(null)}>×</button>
             </div>
 
             <div className={styles.excerptContent}>
@@ -1137,7 +1404,7 @@ export default function Home() {
           <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h3 className={styles.modalTitle}>API Key Configuration</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowApiModal(false)}>✕</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowApiModal(false)}>×</button>
             </div>
 
             <p style={{ fontFamily: 'var(--font-reading)', fontSize: '0.88rem', color: 'var(--ink-secondary)' }}>
@@ -1201,7 +1468,67 @@ export default function Home() {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+            <div className={styles.formField}>
+              <label className={styles.formLabel}>Default Retrieval Depth (Top-K Chunks)</label>
+              <select
+                className={styles.formSelect}
+                value={topK}
+                onChange={(e) => setTopK(parseInt(e.target.value, 10) || 5)}
+              >
+                <option value={3}>Top 3 Passages (Ultra Fast & Concise)</option>
+                <option value={5}>Top 5 Passages (Balanced Standard)</option>
+                <option value={10}>Top 10 Passages (Deep Academic Synthesis)</option>
+                <option value={15}>Top 15 Passages (Comprehensive Literature Review)</option>
+                <option value={20}>Top 20 Passages (Exhaustive Corpus Sweep)</option>
+              </select>
+            </div>
+
+            <div className={styles.formField}>
+              <label className={styles.formLabel}>Default Ingestion Chunking Strategy</label>
+              <select
+                className={styles.formSelect}
+                value={chunkingStrategy}
+                onChange={(e) => setChunkingStrategy(e.target.value as any)}
+              >
+                <option value="balanced">Balanced Paragraph (900 chars / 150 overlap)</option>
+                <option value="fine_grained">Fine-Grained Sentences (450 chars / 80 overlap)</option>
+                <option value="coarse">Coarse Context (1800 chars / 300 overlap)</option>
+                <option value="section_aware">Section-Aware Academic (Strict Boundary Isolation)</option>
+              </select>
+            </div>
+
+            <div className={styles.formField}>
+              <label className={styles.formLabel}>Multi-User Session Isolation ID</label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  readOnly
+                  className={styles.formInput}
+                  value={sessionId}
+                  style={{ opacity: 0.8, cursor: 'default', flex: 1, fontFamily: 'monospace', fontSize: '0.78rem' }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const newSid = 'session_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
+                    setSessionId(newSid);
+                    localStorage.setItem('paperscope_session_id', newSid);
+                    setPapers([]);
+                    setActivePaperId('all');
+                    setMessages([]);
+                  }}
+                  title="Generate a fresh isolated session ID and clear current document state"
+                >
+                  New Session
+                </button>
+              </div>
+              <span style={{ fontSize: '0.70rem', color: 'var(--ink-muted)', fontStyle: 'italic', marginTop: '2px' }}>
+                Your papers, vector indices, and chat queries are completely private to this session ID.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
               <button className="btn btn-secondary btn-sm" onClick={() => setShowApiModal(false)}>
                 Cancel
               </button>

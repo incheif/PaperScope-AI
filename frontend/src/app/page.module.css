@@ -1,5 +1,5 @@
 /* ==========================================================================
-   THE SCHOLARLY GAZETTE: AUTHENTIC MONOCHROMATIC EDITORIAL DESIGN SYSTEM
+   PAPERSCOPE AI: AUTHENTIC MONOCHROMATIC EDITORIAL DESIGN SYSTEM
    ========================================================================== */
 
 .wrapper {
@@ -86,7 +86,6 @@
   letter-spacing: -0.01em;
   color: var(--ink-heavy);
   line-height: 1.1;
-  text-transform: uppercase;
   margin: 0;
 }
 
@@ -591,51 +590,57 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+  background: #f7f7f5;
 }
 
 .msgUser {
   align-self: flex-end;
   max-width: 85%;
-  background: var(--bg-elevated);
+  background: #ecece8;
   border: 1px solid var(--rule-border);
   color: var(--ink-heavy);
-  padding: 10px 14px;
+  padding: 9px 14px;
   font-family: var(--font-ui);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   line-height: 1.5;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .msgAssistant {
   align-self: flex-start;
   width: 100%;
-  background: var(--bg-page);
-  border-left: 2px solid var(--ink-heavy);
-  padding: 14px 16px;
-  color: var(--ink-body);
+  background: #ffffff;
+  border: 1px solid #e2e2dc;
+  border-left: 3.5px solid var(--ink-heavy);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  padding: 16px 18px;
+  color: var(--ink-heavy);
   font-family: var(--font-reading);
   font-size: 0.98rem;
-  line-height: 1.7;
+  line-height: 1.72;
+  border-radius: 3px;
 }
 
 .msgSender {
   font-family: var(--font-ui);
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 800;
   color: var(--ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .citationsBox {
-  margin-top: 10px;
+  margin-top: 12px;
   padding-top: 8px;
-  border-top: 1px dashed var(--rule-border);
+  border-top: 1px dashed #dcdcd6;
 }
 
 .citationsTitle {
   font-family: var(--font-ui);
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -644,64 +649,324 @@
 }
 
 .citationBadge {
-  background: var(--bg-surface);
+  background: #fbfbfa;
   border: 1px solid var(--rule-border);
-  padding: 3px 8px;
+  padding: 2.5px 7px;
   font-family: var(--font-ui);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
   color: var(--ink-primary);
   cursor: pointer;
   transition: all 0.15s ease;
+  border-radius: 2px;
 }
 .citationBadge:hover {
   background: var(--ink-heavy);
-  color: var(--bg-surface);
+  color: #ffffff;
   border-color: var(--ink-heavy);
 }
 
-/* Cross-Questions */
+/* Suggestion Box (Cross-Questions & Follow-ups) */
 .crossQuestionsBox {
   margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--rule-border);
+  padding: 10px 12px;
+  background: #f1efe8;
+  border: 1px solid #dcd7ca;
+  border-left: 3.5px solid var(--ink-heavy);
+  border-radius: 3px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.crossQuestionsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.closeSuggestionBtn {
+  background: transparent;
+  border: none;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.closeSuggestionBtn:hover {
+  color: var(--ink-heavy);
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .crossQuestionsLabel {
   font-family: var(--font-ui);
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-muted);
+  letter-spacing: 0.07em;
+  color: var(--ink-secondary);
 }
 
 .crossQuestionsList {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .crossQuestionPill {
   text-align: left;
-  background: var(--bg-surface);
-  border: 1px solid var(--rule-border);
-  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #d4cfc2;
+  padding: 4px 8px;
   font-family: var(--font-ui);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 500;
   color: var(--ink-primary);
   cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1.4;
+  transition: all 0.12s ease;
+  line-height: 1.35;
+  border-radius: 2px;
 }
 .crossQuestionPill:hover {
   background: var(--ink-heavy);
-  color: var(--bg-surface);
+  color: #ffffff;
   border-color: var(--ink-heavy);
+}
+
+/* Dark Mode Overrides for Assistant Answer & Suggestion Box */
+:global(body.night-mode) .chatFeed,
+[data-theme='dark'] .chatFeed {
+  background: #141414;
+}
+
+:global(body.night-mode) .msgAssistant,
+[data-theme='dark'] .msgAssistant {
+  background: #202020;
+  border-color: #333333;
+  border-left-color: #ffffff;
+  color: #f2f2f2;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+:global(body.night-mode) .msgUser,
+[data-theme='dark'] .msgUser {
+  background: #282828;
+  border-color: #404040;
+  color: #ffffff;
+}
+
+:global(body.night-mode) .citationsBox,
+[data-theme='dark'] .citationsBox {
+  border-top-color: #333333;
+}
+
+:global(body.night-mode) .citationBadge,
+[data-theme='dark'] .citationBadge {
+  background: #262626;
+  border-color: #444444;
+  color: #e0e0e0;
+}
+
+:global(body.night-mode) .citationBadge:hover,
+[data-theme='dark'] .citationBadge:hover {
+  background: #ffffff;
+  color: #111111;
+  border-color: #ffffff;
+}
+
+:global(body.night-mode) .crossQuestionsBox,
+[data-theme='dark'] .crossQuestionsBox {
+  background: #1b1d20;
+  border-color: #2f343a;
+  border-left: 3.5px solid #d4d4d4;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+:global(body.night-mode) .closeSuggestionBtn,
+[data-theme='dark'] .closeSuggestionBtn {
+  color: #888d94;
+}
+
+:global(body.night-mode) .closeSuggestionBtn:hover,
+[data-theme='dark'] .closeSuggestionBtn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global(body.night-mode) .crossQuestionPill,
+[data-theme='dark'] .crossQuestionPill {
+  background: #23262a;
+  border-color: #383c42;
+  color: #d8d8d8;
+}
+
+:global(body.night-mode) .crossQuestionPill:hover,
+[data-theme='dark'] .crossQuestionPill:hover {
+  background: #ffffff;
+  color: #111111;
+  border-color: #ffffff;
+}
+
+/* Top API Key Notice Banner */
+.apiNoticeBanner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 8px 24px;
+  background: #f2f0e8;
+  border-bottom: 1px solid #ded9cb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-reading);
+  font-size: 0.83rem;
+  color: var(--ink-primary);
+}
+
+.apiNoticeContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.apiNoticeText {
+  font-style: italic;
+  color: var(--ink-heavy);
+}
+
+.apiNoticeBtn {
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid #c8c3b5;
+  font-family: var(--font-ui);
+  font-size: 0.70rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.apiNoticeBtn:hover {
+  background: #f7f6f2;
+  color: #000000;
+  border-color: #8c8677;
+}
+
+.apiNoticeDismiss {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s ease;
+}
+
+.apiNoticeDismiss:hover {
+  color: var(--ink-heavy);
+}
+
+/* Chat orientation & pre-prompt notes */
+.emptyChatPrompt {
+  padding: 20px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.chatNoteNotice {
+  background: #f2f0e8;
+  border: 1px dashed #cfc9ba;
+  padding: 8px 14px;
+  border-radius: 3px;
+  font-family: var(--font-reading);
+  font-size: 0.80rem;
+  font-style: italic;
+  color: var(--ink-heavy);
+  max-width: 540px;
+  line-height: 1.45;
+}
+
+.emptyChatHelp {
+  font-family: var(--font-reading);
+  font-size: 0.80rem;
+  color: var(--ink-muted);
+  max-width: 460px;
+  line-height: 1.4;
+}
+
+.inputPrePromptNote {
+  padding: 4px 12px;
+  font-family: var(--font-reading);
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--ink-muted);
+  background: #f7f6f2;
+  border-top: 1px dotted var(--rule-subtle);
+}
+
+:global(body.night-mode) .apiNoticeBanner,
+[data-theme='dark'] .apiNoticeBanner {
+  background: #191b1d;
+  border-color: #2b2e32;
+  color: #d6d6d6;
+}
+
+:global(body.night-mode) .apiNoticeText,
+[data-theme='dark'] .apiNoticeText {
+  color: #eeeeee;
+}
+
+:global(body.night-mode) .apiNoticeBtn,
+[data-theme='dark'] .apiNoticeBtn {
+  background: #25282d;
+  color: #f0f0f0;
+  border: 1px solid #454b54;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+:global(body.night-mode) .apiNoticeBtn:hover,
+[data-theme='dark'] .apiNoticeBtn:hover {
+  background: #31353c;
+  color: #ffffff;
+  border-color: #6c7380;
+}
+
+:global(body.night-mode) .apiNoticeDismiss,
+[data-theme='dark'] .apiNoticeDismiss {
+  color: #888888;
+}
+
+:global(body.night-mode) .apiNoticeDismiss:hover,
+[data-theme='dark'] .apiNoticeDismiss:hover {
+  color: #ffffff;
+}
+
+:global(body.night-mode) .chatNoteNotice,
+[data-theme='dark'] .chatNoteNotice {
+  background: #1b1d20;
+  border-color: #31363e;
+  color: #e0e0e0;
+}
+
+:global(body.night-mode) .inputPrePromptNote,
+[data-theme='dark'] .inputPrePromptNote {
+  background: #161719;
+  border-color: #2b2e32;
+  color: #9da1a6;
 }
 
 /* Active Quote Box */
@@ -993,3 +1258,129 @@
 .formInput:focus, .formSelect:focus {
   border-color: var(--ink-heavy);
 }
+
+/* --------------------------------------------------------------------------
+   CHUNKING STRATEGY SELECTOR & RETRIEVAL DEPTH CONTROLS
+   -------------------------------------------------------------------------- */
+.strategyControlWrapper {
+  margin: 16px 0 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.strategyHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+}
+
+.strategyButtonGroup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  background: var(--bg-surface);
+  padding: 4px;
+  border: 1px solid var(--rule-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.strategyBtn {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px 14px;
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.strategyBtn:hover {
+  color: var(--ink-heavy);
+  background: var(--bg-elevated);
+}
+
+.strategyBtnActive {
+  background: var(--ink-heavy) !important;
+  color: var(--bg-surface) !important;
+  font-weight: 700;
+  border-color: var(--ink-heavy);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.strategyDescription {
+  font-family: var(--font-reading);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* Top-K retrieval depth bar in chat column */
+.topKControlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--rule-border);
+  border-bottom: none;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+}
+
+.topKLabel {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.topKButtonGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.topKPill {
+  background: transparent;
+  border: 1px solid var(--rule-border);
+  padding: 2px 7px;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.topKPill:hover {
+  background: var(--bg-surface);
+  color: var(--ink-heavy);
+  border-color: var(--ink-heavy);
+}
+
+.topKPillActive {
+  background: var(--ink-heavy) !important;
+  color: var(--bg-surface) !important;
+  border-color: var(--ink-heavy) !important;
+  font-weight: 700;
+}
+

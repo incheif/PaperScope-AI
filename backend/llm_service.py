@@ -201,8 +201,10 @@ class LLMService:
         for c in retrieved_chunks:
             fname = c.get('filename', '')
             clean_name = re.sub(r'\.pdf$', '', fname, flags=re.I).strip() if fname else "Document"
-            ref_tag = " [SECTION: Cited References/Bibliography - PRIOR ART]" if c.get("is_reference") else ""
-            doc_tag = f"[{clean_name}, Page {c.get('page')}{ref_tag}]"
+            ref_tag = " [PRIOR ART / BIBLIOGRAPHY]" if c.get("is_reference") else ""
+            sec_name = c.get("section", "")
+            sec_tag = f" - Section: {sec_name}" if sec_name and sec_name not in ["Main Text", "Introduction / Front Matter"] else ""
+            doc_tag = f"[{clean_name}, Page {c.get('page')}{sec_tag}{ref_tag}]"
             context_parts.append(
                 f"Source Chunk #{c.get('chunk_id')} | {doc_tag}:\n{c.get('text')}\n"
             )
@@ -217,6 +219,7 @@ class LLMService:
                 "page": c.get("page", 1),
                 "chunk_id": c.get("chunk_id", 1),
                 "filename": clean_name,
+                "section": c.get("section", "Main Text"),
                 "snippet": snippet,
                 "relevance_score": round(c.get("score", 0.0), 3)
             })

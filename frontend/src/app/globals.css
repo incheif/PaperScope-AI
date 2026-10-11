@@ -33,6 +33,7 @@
   --reading-line-height: 1.75;
 }
 
+body.night-mode,
 [data-theme='dark'] {
   --bg-page: #121212;
   --bg-surface: #1a1a1a;

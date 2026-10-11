@@ -1,4 +1,4 @@
-# 🔬 PaperScope AI — Enterprise Academic Research Paper Analyser (v2.0)
+# PaperScope AI — Enterprise Academic Research Paper Analyser (v2.0)
 
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2015-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
@@ -10,7 +10,7 @@ An enterprise-grade, full-stack Retrieval-Augmented Generation (RAG) platform pu
 
 ---
 
-## ✨ What's New in v2.0 vs v1.0
+## What's New in v2.0 vs v1.0
 
 | Feature | Legacy v1.0 (Streamlit) | PaperScope AI v2.0 (Full-Stack) |
 |---|---|---|
@@ -18,15 +18,15 @@ An enterprise-grade, full-stack Retrieval-Augmented Generation (RAG) platform pu
 | **Conversational Memory** | Single question-response state | Multi-turn conversational context with citation memory |
 | **Citation Attribution** | Raw text chunk dump | Interactive inline `[Page X]` chips with excerpt verification drawers |
 | **Paper Breakdown** | Basic similarity dump | Automatic 5-part synthesis (Executive Summary, Contributions, Methodology, Benchmarks, Limitations) |
-| **BibTeX Generator** | ❌ None | ✅ One-click copyable BibTeX citation generator |
+| **BibTeX Generator** | None | One-click copyable BibTeX citation generator |
 | **Model Flexibility** | Hardcoded model | Multi-model switcher: Gemini 1.5 Flash, 1.5 Pro, 2.0 Flash & Groq Llama 3.3 70B |
 | **API Configuration** | Streamlit secrets only | In-browser UI key storage or server environment variables |
-| **Export Capabilities** | ❌ None | ✅ Download comprehensive Markdown reports with QA transcripts |
+| **Export Capabilities** | None | Download comprehensive Markdown reports with QA transcripts |
 | **Design System** | Default Streamlit UI | Obsidian glassmorphic dark theme, responsive grid & micro-animations |
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TD
@@ -47,7 +47,7 @@ graph TD
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - **Node.js**: v18+ (tested on Node.js v24)
@@ -101,7 +101,7 @@ docker compose up --build
 
 ---
 
-## 🌐 Cloud Deployment Guide
+## Cloud Deployment Guide
 
 ### Deploying Frontend to Vercel
 1. Push this repository to GitHub.
@@ -123,6 +123,6 @@ docker compose up --build
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
