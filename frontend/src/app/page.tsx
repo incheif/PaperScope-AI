@@ -158,7 +158,7 @@ export default function Home() {
 
   // View Layout Modes
   const [viewMode, setViewMode] = useState<'split' | 'chatgpt' | 'article'>('split');
-  // Reader Sub-Modes: Editorial Digest, Original PDF Viewer, Page-by-Page Manuscript
+  // Reader Sub-Modes: Executive Analysis, Original PDF Viewer, Page-by-Page Manuscript
   const [readerMode, setReaderMode] = useState<'digest' | 'pdf' | 'manuscript'>('digest');
 
   // Text Highlighting & Quoting
@@ -563,7 +563,7 @@ export default function Home() {
       <header className={styles.masthead}>
         <div className={styles.topEarBar}>
           <div className={styles.earLeft}>
-            <span>THE SCHOLARLY DISPATCH</span>
+            <span>PAPERSCOPE AI DISPATCH</span>
             <span className={styles.earDot}>•</span>
             <span>EST. 2026</span>
             <span className={styles.earDot}>•</span>
@@ -590,7 +590,7 @@ export default function Home() {
             PaperScope AI
           </h1>
           <p className={styles.newspaperTagline}>
-            Literature Digest & Retrieval-Augmented Cross-Paper Research Platform
+            PaperScope AI & Retrieval-Augmented Cross-Paper Research Platform
           </p>
         </div>
 
@@ -774,6 +774,19 @@ export default function Home() {
               )}
             </div>
 
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={loadDemoPapers}
+                id="load-demo-papers-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}
+              >
+                <span>📑</span>
+                <span>Load Specimen Research Papers (Instant Demo)</span>
+              </button>
+            </div>
+
             {uploadError && (
               <div style={{ color: 'var(--ink-heavy)', fontSize: '0.88rem', marginTop: '10px', fontWeight: 600 }}>
                 Notice: {uploadError}
@@ -896,7 +909,7 @@ export default function Home() {
                         className={m.role === 'user' ? styles.msgUser : styles.msgAssistant}
                       >
                         <div className={styles.msgSender}>
-                          {m.role === 'user' ? 'RESEARCH INQUIRY' : 'SCHOLARLY CO-PILOT'}
+                          {m.role === 'user' ? 'RESEARCH INQUIRY' : 'PAPERSCOPE AI CO-PILOT'}
                         </div>
                         <div style={{ whiteSpace: 'pre-wrap' }}>
                           {m.content}
@@ -1006,7 +1019,7 @@ export default function Home() {
                 <article className={styles.storyColumn}>
                   {/* Headline & Metadata */}
                   <div className={styles.articleHeader}>
-                    <div className={styles.articleCategory}>SCHOLARLY MONOGRAPH</div>
+                    <div className={styles.articleCategory}>RESEARCH MONOGRAPH</div>
                     <h2 className={styles.articleHeadline}>{currentPaper.breakdown.title}</h2>
                     <div className={styles.bylineStrip}>
                       <span className={styles.authorAffiliation}>INVESTIGATORS: {currentPaper.breakdown.authors}</span>
@@ -1021,7 +1034,7 @@ export default function Home() {
                         className={`${styles.readerTab} ${readerMode === 'digest' ? styles.readerTabActive : ''}`}
                         onClick={() => setReaderMode('digest')}
                       >
-                        EDITORIAL DIGEST
+                        EXECUTIVE ANALYSIS
                       </button>
                       <button
                         className={`${styles.readerTab} ${readerMode === 'pdf' ? styles.readerTabActive : ''}`}
@@ -1194,12 +1207,12 @@ export default function Home() {
                   )}
                 </article>
 
-                {/* Right Column: Scholarly Co-Pilot Chat (In Split View) */}
+                {/* Right Column: PaperScope AI Co-Pilot Chat (In Split View) */}
                 {viewMode === 'split' && (
                   <aside className={styles.assistantColumn}>
                     <div className={styles.assistantHeader}>
                       <div>
-                        <div className={styles.assistantTitle}>GROUNDED SCHOLARLY CO-PILOT</div>
+                        <div className={styles.assistantTitle}>GROUNDED PAPERSCOPE AI CO-PILOT</div>
                         <div className={styles.assistantSub}>RAG with Citation Excerpts</div>
                       </div>
                     </div>
@@ -1221,7 +1234,7 @@ export default function Home() {
                           className={m.role === 'user' ? styles.msgUser : styles.msgAssistant}
                         >
                           <div className={styles.msgSender}>
-                            {m.role === 'user' ? 'RESEARCH INQUIRY' : 'SCHOLARLY CO-PILOT'}
+                            {m.role === 'user' ? 'RESEARCH INQUIRY' : 'PAPERSCOPE AI CO-PILOT'}
                           </div>
                           <div style={{ whiteSpace: 'pre-wrap' }}>
                             {m.content}

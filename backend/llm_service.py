@@ -248,7 +248,7 @@ class LLMService:
             "2. ZERO CONVERSATIONAL FLUFF OR THROAT-CLEARING:\n"
             "   - NEVER start with weak meta-language such as 'The retrieved document excerpts highlight...', 'Based on the provided documents...', 'Here are the central contributions:', or 'According to the context...'.\n"
             "   - Open immediately with an authoritative, substantive thesis statement synthesizing the core breakthrough or finding.\n\n"
-            "3. DECENT, STRUCTURED SCHOLARLY ARCHITECTURE:\n"
+            "3. DECENT, STRUCTURED ACADEMIC ARCHITECTURE:\n"
             "   Structure your response with clear, dignified academic headings:\n"
             "   - **Executive Synthesis**: A sharp 1-2 sentence distillation of the primary contribution.\n"
             "   - **Core Methodological Innovations**: Distinct, detailed breakdowns of the proposed techniques, algorithms, or mechanisms.\n"

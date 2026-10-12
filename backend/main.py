@@ -411,7 +411,7 @@ async def export_analysis(req: ExportRequest, x_session_id: Optional[str] = Head
     if req.chat_history:
         md_lines.extend([
             "",
-            "## Scholarly Co-Pilot Transcript & Cross-Questions",
+            "## PaperScope AI Co-Pilot Transcript & Cross-Questions",
             ""
         ])
         for msg in req.chat_history:

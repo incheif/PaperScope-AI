@@ -326,7 +326,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   READER SUB-NAV (DIGEST, PDF, MANUSCRIPT)
+   READER SUB-NAV (ANALYSIS, PDF, MANUSCRIPT)
    -------------------------------------------------------------------------- */
 .readerSubNav {
   display: flex;
@@ -450,7 +450,7 @@
   user-select: text;
 }
 
-/* Article Digest Sections */
+/* Article Analysis Sections */
 .storySection {
   background: var(--bg-surface);
   border: 1px solid var(--rule-border);
