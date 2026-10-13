@@ -8,6 +8,7 @@ from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+from starlette.middleware.gzip import GZipMiddleware
 from parser import PDFParser
 from rag import VectorIndex
 from llm_service import LLMService
@@ -20,6 +21,9 @@ app = FastAPI(
     version="2.0.0"
 )
 
+# Bandwidth Saver: Automatically compress JSON and text responses over 1KB (reduces response size by ~70-80%)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,6 +31,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Upload limits to protect Render memory (512MB RAM) and bandwidth
+MAX_FILE_SIZE_MB = int(os.environ.get("MAX_FILE_SIZE_MB", "30"))
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+MAX_SESSION_STORAGE_MB = int(os.environ.get("MAX_SESSION_STORAGE_MB", "100"))
+MAX_SESSION_STORAGE_BYTES = MAX_SESSION_STORAGE_MB * 1024 * 1024
 
 # Multi-user session-aware storage: session_id -> { paper_id -> paper_obj }
 SESSIONS_STORE: Dict[str, Dict[str, Any]] = {}
@@ -137,6 +147,19 @@ async def upload_papers(
         file_bytes = await f.read()
         if len(file_bytes) == 0:
             continue
+
+        if len(file_bytes) > MAX_FILE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File '{f.filename}' ({len(file_bytes) / (1024 * 1024):.1f}MB) exceeds the maximum limit of {MAX_FILE_SIZE_MB}MB. Please upload a smaller document."
+            )
+
+        current_session_bytes = sum(p.get("file_size", 0) for p in current_store.values() if p.get("paper_id") != "all")
+        if current_session_bytes + len(file_bytes) > MAX_SESSION_STORAGE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Session storage limit ({MAX_SESSION_STORAGE_MB}MB) exceeded. Remove older papers before uploading more."
+            )
 
         paper_id = str(uuid.uuid4())[:8]
         pages_data = PDFParser.extract_text_by_pages(file_bytes)
@@ -297,7 +320,10 @@ async def get_paper_pdf(paper_id: str, x_session_id: Optional[str] = Header(None
     return Response(
         content=p["pdf_bytes"],
         media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{p["filename"]}"'}
+        headers={
+            "Content-Disposition": f'inline; filename="{p["filename"]}"',
+            "Cache-Control": "public, max-age=86400, immutable"
+        }
     )
 
 @app.post("/api/chat")

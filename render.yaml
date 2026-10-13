@@ -1,0 +1,34 @@
+services:
+  # ----------------------------------------------------
+  # Backend API (FastAPI)
+  # ----------------------------------------------------
+  - type: web
+    name: paperscope-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+  # ----------------------------------------------------
+  # Frontend Application (Next.js)
+  # ----------------------------------------------------
+  - type: web
+    name: paperscope-frontend
+    runtime: node
+    rootDir: frontend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NEXT_PUBLIC_BACKEND_URL
+        sync: false

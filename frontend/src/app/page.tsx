@@ -288,9 +288,16 @@ export default function Home() {
     const formData = new FormData();
     const localPdfMap: Record<string, string> = {};
 
+    const MAX_CLIENT_FILE_SIZE = 30 * 1024 * 1024; // 30MB per PDF limit
+
     for (let i = 0; i < fileList.length; i++) {
       const f = fileList[i];
       if (f.name.toLowerCase().endsWith('.pdf')) {
+        if (f.size > MAX_CLIENT_FILE_SIZE) {
+          setUploadError(`"${f.name}" is ${(f.size / (1024 * 1024)).toFixed(1)}MB, exceeding the 30MB limit per document. Please select a smaller research paper.`);
+          setIsUploading(false);
+          return;
+        }
         formData.append('files', f);
         try {
           localPdfMap[f.name] = URL.createObjectURL(f);
