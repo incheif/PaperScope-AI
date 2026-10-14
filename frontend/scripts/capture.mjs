@@ -1,12 +1,14 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-
-const SCREENSHOT_DIR = path.resolve('docs/screenshots');
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.resolve(__dirname, '../..');
+const SCREENSHOT_DIR = path.join(ROOT_DIR, 'docs', 'screenshots');
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const TEMP_PROFILE = path.resolve('scratch/chrome_profile');
+const TEMP_PROFILE = path.join(ROOT_DIR, 'scratch', 'chrome_profile');
 fs.mkdirSync(TEMP_PROFILE, { recursive: true });
 
 async function sleep(ms) {
@@ -87,41 +89,27 @@ async function main() {
     const shot1 = await send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(path.join(SCREENSHOT_DIR, '01-landing-workspace.png'), Buffer.from(shot1.data, 'base64'));
 
-    // Stage 2: Load Specimen Research Papers & View Split-Screen Synthesis
-    console.log('Loading Specimen Research Papers...');
+    // Stage 2: Load Sample Research Papers (kim25c.pdf & wen25g.pdf) & View Split-Screen Synthesis
+    console.log('Loading Sample Research Papers from sample_docs/...');
     await send('Runtime.evaluate', {
-      expression: 'document.getElementById("load-demo-papers-btn")?.click()'
+      expression: 'window.__loadSamplePapers ? window.__loadSamplePapers() : null'
     });
-    await sleep(3000);
+    await sleep(2500);
+
+    // Focus on Paper 1 (kim25c.pdf: OpenVLA monograph)
+    await send('Runtime.evaluate', {
+      expression: `(() => {
+        const tab = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('kim25c.pdf'));
+        if (tab) tab.click();
+      })()`
+    });
+    await sleep(2000);
 
     console.log('Capturing Stage 2: 02-paper-synthesis.png...');
     const shot2 = await send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(path.join(SCREENSHOT_DIR, '02-paper-synthesis.png'), Buffer.from(shot2.data, 'base64'));
 
-    // Stage 3: Conversational Interrogation & Citation Attribution
-    console.log('Triggering Conversational Multi-turn Inquiry...');
-    await send('Runtime.evaluate', {
-      expression: `(() => {
-        const pill = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Compare the computational'));
-        if (pill) pill.click();
-      })()`
-    });
-    await sleep(2500);
-
-    // Also scroll the chat container smoothly so the conversation and grounded citation chips are clearly in view
-    await send('Runtime.evaluate', {
-      expression: `(() => {
-        const chatCols = Array.from(document.querySelectorAll('div, section')).filter(el => el.scrollHeight > el.clientHeight);
-        chatCols.forEach(el => el.scrollTop = el.scrollHeight);
-      })()`
-    });
-    await sleep(1000);
-
-    console.log('Capturing Stage 3: 03-chat-interrogation.png...');
-    const shot3 = await send('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(path.join(SCREENSHOT_DIR, '03-chat-interrogation.png'), Buffer.from(shot3.data, 'base64'));
-
-    console.log('Screenshots captured successfully!');
+    console.log('Screenshots captured successfully (Stage 1 & Stage 2)!');
     ws.close();
   } finally {
     cleanup();

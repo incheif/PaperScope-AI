@@ -3,7 +3,6 @@
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Gemini](https://img.shields.io/badge/LLM-Google%20Gemini%202.5-4285F4?style=flat-square&logo=google)](https://ai.google.dev/)
-[![Groq](https://img.shields.io/badge/Inference-Groq%20Llama%203.3-F55036?style=flat-square)](https://groq.com/)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Python](https://img.shields.io/badge/Language-Python%203.13-3776AB?style=flat-square&logo=python)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Container-Docker-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
@@ -16,37 +15,26 @@ An enterprise-grade, full-stack Retrieval-Augmented Generation (RAG) platform pu
 ## Application Walkthrough
 
 ### Stage 1: Document Ingestion & Workspace Setup
-Configure semantic chunking profiles, select inference models, and ingest single or multi-manuscript research corpuses via drag-and-drop or one-click specimen loading.
+Configure semantic chunking profiles, select inference models, and ingest single or multi-manuscript research corpuses via intuitive drag-and-drop or the native file selector.
 
 ![Stage 1: Ingestion & Workspace Setup](docs/screenshots/01-landing-workspace.png)
 
 * **Adaptive Chunking Engine**: Choose between Balanced Paragraph (900c), Fine-Grained Passage (450c), Coarse Context (1800c), or Section-Aware Academic isolation.
-* **Instant Specimen Mode**: Explore sample research corpuses immediately without requiring an initial file upload.
-* **Model & Session Configuration**: Enter API keys in-browser or run securely against backend environment variables.
+* **Academic Manuscript Ingestion**: Ingest multi-column scientific PDFs (such as the frontier robotics papers provided in `sample_docs/`) with automated vector indexing.
+* **Model & Session Configuration**: Enter your Gemini API key in-browser or run securely against backend environment variables.
 
 ---
 
-### Stage 2: Split-Screen Academic Synthesis
-View automated 5-part academic breakdowns alongside document metadata, publication venues, and one-click citation exports.
+### Stage 2: Split-Screen Academic Synthesis & Grounded Co-Pilot
+View automated 5-part academic breakdowns alongside document metadata, publication venues, and one-click citation exports while conducting deep conversational inquiries with verified page-level citations (shown analyzing OpenVLA from `sample_docs/`).
 
-![Stage 2: Split-Screen Academic Synthesis](docs/screenshots/02-paper-synthesis.png)
+![Stage 2: Split-Screen Academic Synthesis & Grounded Co-Pilot](docs/screenshots/02-paper-synthesis.png)
 
 * **Automated 5-Part Breakdown**: Instant structured synthesis extracting Executive Summary, Key Contributions, Methodology & Design, Empirical Benchmarks, and Documented Limitations.
+* **Conversational Co-Pilot**: Interactive inquiries with grounded page-level citations and proactive domain-specific follow-ups.
 * **Multi-Paper Corpus Switcher**: Switch between individual paper monographs or analyze the unified multi-document corpus.
 * **Tri-Mode Reader**: Toggle between Executive Analysis, Embedded Original PDF, and Page-by-Page Manuscript views.
 * **BibTeX Generator**: Instant copyable BibTeX entry formatted to academic standards.
-
----
-
-### Stage 3: Conversational RAG Interrogation & Citation Attribution
-Conduct deep conversational inquiries with verified page-level source citations and interactive excerpt inspection.
-
-![Stage 3: Conversational RAG Interrogation & Citation Attribution](docs/screenshots/03-chat-interrogation.png)
-
-* **Grounded Source Attribution**: Every response includes clickable `[Page X]` citation chips linking to original manuscript excerpts.
-* **Archival Excerpt Verification**: Click any citation chip to open a verification drawer displaying verbatim excerpt text and relevance confidence scoring.
-* **Proactive Follow-Ups**: Proactively suggests domain-specific cross-examination questions based on conversation context.
-* **Text Selection Interrogation**: Highlight any passage in the manuscript to ask targeted questions directly against that section.
 
 ---
 
@@ -57,7 +45,7 @@ Conduct deep conversational inquiries with verified page-level source citations 
 | **Multi-Document Synthesis** | Ingest multiple papers simultaneously to perform cross-document comparisons, synthesize conflicting methodologies, and discover cross-paper citations. |
 | **Verifiable In-Text Citations** | Eliminates hallucination risk with strict source grounding, inline citation chips, and relevance scores. |
 | **Configurable Chunking Profiles** | Tailor token segmentation to the paper's domain — fine-grained for metric ablation tables or coarse for mathematical proofs. |
-| **Multi-Model Intelligence** | Switch on the fly between Google Gemini (Gemini 2.5 Flash, 1.5 Pro) and Groq (Llama 3.3 70B Versatile). |
+| **Advanced Reasoning Engines** | Powered by Google Gemini 2.5 Flash for high-speed synthesis and Gemini 2.5 Pro for deep mathematical and theoretical reasoning. |
 | **Flexible Workspace Layouts** | Work in Dual-Pane Split View, focused ChatGPT Mode, Reading Article View, or Full Original PDF Mode. |
 | **Session Isolation & Privacy** | Multi-tenant session isolation keeps paper indices separate per user with optional client-side API key storage. |
 | **Editorial Newspaper Aesthetic** | Designed with high-readability typography, obsidian dark mode toggle, and micro-animations. |
@@ -69,11 +57,11 @@ Conduct deep conversational inquiries with verified page-level source citations 
 ```mermaid
 graph TD
     subgraph Ingestion Pipeline
-        A[User PDF Upload / Specimen Corpus] --> B[FastAPI /api/upload]
+        A[User PDF Academic Upload] --> B[FastAPI /api/upload]
         B --> C[PDFParser: Page-by-Page Extraction]
         C --> D[Configurable Semantic Chunking]
         D --> E[Vector Index: Embeddings / Cosine Similarity]
-        C --> F[Automatic Synthesis Engine: Gemini / Groq]
+        C --> F[Automatic Synthesis Engine: Google Gemini]
         F --> G[5-Part Breakdown: Executive, Methods, Benchmarks, Limitations, BibTeX]
     end
 
@@ -94,7 +82,7 @@ graph TD
 ### Prerequisites
 * **Node.js**: v18+ (tested on Node.js v24)
 * **Python**: 3.9+ (tested on Python 3.13)
-* **API Keys (Optional)**: [Google AI Studio (Gemini)](https://aistudio.google.com/app/apikey) or [Groq Console](https://console.groq.com/keys). *Keys can also be entered directly in the web UI!*
+* **API Key (Optional)**: [Google AI Studio (Gemini)](https://aistudio.google.com/app/apikey). *Keys can also be entered directly in the web UI!*
 
 ---
 
@@ -155,7 +143,6 @@ Open your browser at `http://localhost:3000`.
 | `PORT` | FastAPI server port | `8001` |
 | `HOST` | Bind host address | `0.0.0.0` |
 | `GOOGLE_API_KEY` | Google Gemini API key (optional if provided in UI) | `""` |
-| `GROQ_API_KEY` | Groq API key for Llama 3 models (optional) | `""` |
 
 ### Frontend (`frontend/.env.local`)
 
@@ -195,7 +182,6 @@ Open your browser at `http://localhost:3000`.
 5. Set **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`.
 6. Add environment variables:
    * `GOOGLE_API_KEY`: Your Gemini API key.
-   * `GROQ_API_KEY`: Your Groq API key (optional).
 
 ---
 

@@ -73,23 +73,16 @@ class ExportRequest(BaseModel):
     chat_history: Optional[List[Dict[str, str]]] = []
     session_id: Optional[str] = None
 
-def resolve_credentials(header_gemini: Optional[str], header_groq: Optional[str], body_key: Optional[str] = None):
+def resolve_credentials(header_gemini: Optional[str], body_key: Optional[str] = None) -> str:
     candidate = (body_key or "").strip()
     gemini_key = (header_gemini or os.environ.get("GOOGLE_API_KEY", "")).strip()
-    groq_key = (header_groq or os.environ.get("GROQ_API_KEY", "")).strip()
-
     if candidate:
-        if candidate.startswith("gsk_"):
-            groq_key = candidate
-        else:
-            gemini_key = candidate
-
-    return gemini_key, groq_key
+        gemini_key = candidate
+    return gemini_key
 
 @app.get("/api/health")
 async def health_check():
     has_gemini = bool(os.environ.get("GOOGLE_API_KEY"))
-    has_groq = bool(os.environ.get("GROQ_API_KEY"))
     total_papers = sum(len([p for pid, p in s.items() if pid != "all"]) for s in SESSIONS_STORE.values())
     return {
         "status": "healthy",
@@ -97,8 +90,7 @@ async def health_check():
         "active_sessions_count": len(SESSIONS_STORE),
         "active_papers_count": total_papers,
         "keys_configured": {
-            "google_gemini": has_gemini,
-            "groq": has_groq
+            "google_gemini": has_gemini
         },
         "available_chunking_strategies": [
             {"id": "balanced", "name": "Balanced Paragraph (900 chars)", "description": "Standard balanced context for general academic papers"},
@@ -109,8 +101,7 @@ async def health_check():
         "available_models": [
             {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Ultra Fast & Recommended)", "provider": "gemini"},
             {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro (Deep Reasoning)", "provider": "gemini"},
-            {"id": "gemini-flash-latest", "name": "Gemini Flash Latest", "provider": "gemini"},
-            {"id": "llama-3.3-70b-versatile", "name": "Llama 3.3 70B (Groq Fast)", "provider": "groq"}
+            {"id": "gemini-flash-latest", "name": "Gemini Flash Latest", "provider": "gemini"}
         ]
     }
 
@@ -119,7 +110,6 @@ async def upload_papers(
     files: Optional[List[UploadFile]] = File(None),
     file: Optional[UploadFile] = File(None),
     x_gemini_key: Optional[str] = Header(None),
-    x_groq_key: Optional[str] = Header(None),
     x_session_id: Optional[str] = Header(None),
     client_api_key: Optional[str] = Form(None),
     session_id: Optional[str] = Form(None),
@@ -134,8 +124,8 @@ async def upload_papers(
     sid = (session_id or x_session_id or "").strip() or DEFAULT_SESSION_ID
     current_store = get_session_store(sid)
 
-    gemini_key, groq_key = resolve_credentials(x_gemini_key, x_groq_key, client_api_key)
-    llm = LLMService(google_api_key=gemini_key, groq_api_key=groq_key)
+    gemini_key = resolve_credentials(x_gemini_key, client_api_key)
+    llm = LLMService(google_api_key=gemini_key)
 
     processed_papers = []
     all_chunks = []
@@ -330,7 +320,6 @@ async def get_paper_pdf(paper_id: str, x_session_id: Optional[str] = Header(None
 async def chat_with_paper(
     req: ChatRequest,
     x_gemini_key: Optional[str] = Header(None),
-    x_groq_key: Optional[str] = Header(None),
     x_session_id: Optional[str] = Header(None)
 ):
     sid = req.session_id or x_session_id or DEFAULT_SESSION_ID
@@ -366,12 +355,11 @@ async def chat_with_paper(
         }
         top_chunks = [hl_chunk] + [c for c in top_chunks if c.get("text") != req.highlighted_text][:top_k_val - 1]
 
-    gemini_key, groq_key = resolve_credentials(x_gemini_key, x_groq_key, req.api_key)
+    gemini_key = resolve_credentials(x_gemini_key, req.api_key)
 
     llm = LLMService(
         google_api_key=gemini_key,
-        groq_api_key=groq_key,
-        preferred_provider=req.provider or "gemini",
+        preferred_provider="gemini",
         preferred_model=req.model or "gemini-2.5-flash"
     )
 

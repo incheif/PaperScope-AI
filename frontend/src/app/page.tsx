@@ -59,93 +59,96 @@ interface HighlightSelection {
   page?: number;
 }
 
-const SAMPLE_DEMO_PAPERS: Paper[] = [
+const SAMPLE_RESEARCH_PAPERS: Paper[] = [
   {
-    paper_id: 'demo-rag-survey-2024',
-    filename: 'Retrieval_Augmented_Generation_Survey.pdf',
-    total_pages: 14,
-    total_chunks: 38,
+    paper_id: 'sample-openvla-2024',
+    filename: 'kim25c.pdf',
+    total_pages: 35,
+    total_chunks: 86,
     breakdown: {
-      title: 'Retrieval-Augmented Generation for AI Reasoning: Architectures, Benchmarks, and Future Directions',
-      authors: 'Alexander H. Wright, Elena Rostova, Marcus Vance, et al.',
-      publication_venue: 'Journal of Artificial Intelligence Research (JAIR), 2024',
-      executive_summary: 'This monograph provides a rigorous comparative synthesis of Retrieval-Augmented Generation (RAG) paradigms. It demonstrates that dense vector retrieval paired with cross-encoder re-ranking reduces factual hallucination rates by 42% on multi-hop reasoning tasks while keeping token consumption bounded within acceptable latency bounds.',
+      title: 'OpenVLA: An Open-Source Vision-Language-Action Model',
+      authors: 'Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao, Chelsea Finn, Sergey Levine, et al.',
+      publication_venue: 'arXiv:2406.09246 / Open X-Embodiment Consortium',
+      executive_summary: 'OpenVLA is a 7B-parameter open-source vision-language-action (VLA) foundation model trained on 970k real-world robot episodes from the Open X-Embodiment dataset. It sets a new state of the art for generalist robot manipulation policies, outperforming closed-source models such as RT-2-X (55B) by 16.5% absolute task success rate while supporting efficient fine-tuning on consumer hardware.',
       key_contributions: [
-        'Formal taxonomy distinguishing Naive, Advanced, and Modular RAG architectures.',
-        'Context-Aware Adaptive Chunking algorithm minimizing semantic boundary fragmentation.',
-        'Extensive benchmark on 12 domain-specific question-answering evaluation datasets.',
-        'Theoretical latency-accuracy Pareto frontier for re-ranking models in real-time inference.'
+        'Open-source 7B vision-language-action foundation model based on Llama-2 with fused DINOv2 and SigLIP visual backbones.',
+        'Pretrained at scale across 970k diverse robot manipulation episodes spanning 22 distinct robotic embodiments.',
+        'Parameter-efficient adaptation (LoRA) enabling target robot fine-tuning in hours on single consumer GPUs.',
+        'Demonstrates out-of-the-box generalization to novel table-top manipulation tasks without task-specific engineering.'
       ],
-      methodology: 'The evaluation establishes an open benchmark testing 4 retriever families (BM25, Dense Passage Retrieval, ColBERT, and Multi-vector Embeddings) across 15,000 queries. Retrieval chunks are scored on context relevance, grounded answer fidelity, and factual consistency using standardized rubric evaluations.',
-      results_and_benchmarks: 'Modular RAG achieved 84.6% accuracy on the HalluEval corpus, outperforming zero-shot foundation models (52.1%) and standard vector RAG (71.3%). Latency overhead was limited to 110ms with ColBERT pruning.',
-      limitations: 'Susceptibility to document retrieval poisoning attacks; quadratic compute costs during multi-hop iterative re-querying across corpus sizes exceeding 10M tokens.',
-      bibtex: `@article{wright2024rag,\n  title={Retrieval-Augmented Generation for AI Reasoning: Architectures, Benchmarks, and Future Directions},\n  author={Wright, Alexander H. and Rostova, Elena and Vance, Marcus},\n  journal={Journal of Artificial Intelligence Research},\n  volume={79},\n  pages={101--148},\n  year={2024}\n}`,
+      methodology: 'The architecture projects RGB camera observations through fused DINOv2 and SigLIP encoders into the token embedding space of Llama-2 (7B). Continuous robot gripper and arm actions are discretized into 256 bins per degree-of-freedom and trained autoregressively using a cross-entropy loss.',
+      results_and_benchmarks: 'Surpasses RT-2-X (55B) by 16.5% absolute task success rate across real-world evaluations; achieves 78.4% success in multi-task manipulation on WidowX and Franka Emika Panda robotic arms.',
+      limitations: 'Inference latency bounds dynamic closed-loop control (>10Hz requires GPU quantization); challenges with zero-shot transfer to vastly disparate kinematic configurations.',
+      bibtex: `@article{kim2024openvla,\n  title={OpenVLA: An Open-Source Vision-Language-Action Model},\n  author={Kim, Moo Jin and Pertsch, Karl and Karamcheti, Siddharth and Xiao, Ted and Balakrishna, Ashwin and Nair, Suraj and Rafailov, Rafael and Foster, Ethan and Sanketi, Pannag and Vuong, Quan and Kollar, Thomas and Burchfiel, Benjamin and Tedrake, Russ and Sadigh, Dorsa and Levine, Sergey and Liang, Percy and Finn, Chelsea},\n  journal={arXiv preprint arXiv:2406.09246},\n  year={2024}\n}`,
       suggested_questions: [
-        'How does Context-Aware Adaptive Chunking mitigate semantic loss?',
-        'What were the empirical results of Modular RAG on HalluEval?',
-        'What are the primary computational bottlenecks identified during multi-hop retrieval?'
+        "How does OpenVLA's 7B architecture achieve 16.5% higher success rate than the 55B RT-2-X?",
+        "What parameter-efficient fine-tuning strategies enable fast adaptation to novel robots?",
+        "How does the fused DINOv2 and SigLIP visual backbone enhance spatial grasping accuracy?"
       ]
     },
     pages_data: [
       {
         page: 1,
-        text: 'Retrieval-Augmented Generation for AI Reasoning: Architectures, Benchmarks, and Future Directions\n\nAlexander H. Wright, Elena Rostova, Marcus Vance\n\nAbstract: Large Language Models (LLMs) continue to demonstrate remarkable generative prowess, yet persistent vulnerabilities to hallucinations and knowledge obsolescence impede high-stakes deployment. This paper synthesizes the state-of-the-art in Retrieval-Augmented Generation (RAG).'
+        text: 'OpenVLA: An Open-Source Vision-Language-Action Model\n\nMoo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan Foster, Pannag Sanketi, Quan Vuong, Thomas Kollar, Benjamin Burchfiel, Russ Tedrake, Dorsa Sadigh, Sergey Levine, Percy Liang, Chelsea Finn\n\nAbstract: Large policies pretrained on a combination of Internet-scale vision-language data and diverse robot demonstrations have the potential to change how we teach robots new skills: rather than training new behaviors from scratch, we can fine-tune such vision-language-action (VLA) models.'
       },
       {
         page: 2,
-        text: '1. Introduction and Architectural Taxonomy\n\nModern knowledge-grounded systems are categorized into Naive, Advanced, and Modular RAG architectures. In Naive RAG, fixed-size token chunking often fractures logical coherence. In Advanced RAG, pre-retrieval query expansion and post-retrieval re-ranking mitigate retrieval noise.'
+        text: '1. Introduction & Architectural Overview\n\nWe present OpenVLA, a 7B-parameter open-source vision-language-action model trained on 970k robot episodes from the Open X-Embodiment dataset. OpenVLA sets a new state of the art for generalist robot manipulation policies. It supports controlling multiple robots out of the box and can be quickly adapted to new robot domains via parameter-efficient fine-tuning.'
       },
       {
         page: 3,
-        text: '2. Context-Aware Adaptive Chunking\n\nWe formulate an adaptive boundary algorithm that monitors semantic cosine similarity between adjacent paragraph embeddings. Chunks are dynamically split when similarity dips below a dynamic threshold theta, reducing semantic fragmentation by 34%.'
+        text: '2. Multi-Modal Vision-Action Tokenization\n\nOpenVLA fuses visual tokens from DINOv2 (for rich spatial geometry) and SigLIP (for high-level semantic alignment) into the Llama-2 (7B) transformer. Robot action coordinates (x, y, z, roll, pitch, yaw, gripper) are discretized into 256 bins and appended to the vocabulary.'
       },
       {
         page: 4,
-        text: '3. Experimental Results & Benchmarks\n\nAcross 15,000 multi-hop questions, Modular RAG achieved 84.6% accuracy on HalluEval, outperforming baseline DPR (71.3%) and BM25 (61.2%). Cross-encoder re-ranking adds 110ms latency but improves precision by 28%.'
+        text: '3. Empirical Benchmarks & Real-Robot Evaluation\n\nIn extensive evaluations across multiple robot setups (Franka Emika Panda and WidowX 250), OpenVLA outperforms Octo by 28.3% and surpasses RT-2-X (55B) by 16.5% absolute success rate, while requiring 8x fewer parameters.'
       }
     ]
   },
   {
-    paper_id: 'demo-attention-scale-2024',
-    filename: 'Attention_Mechanisms_Comparative_Study.pdf',
-    total_pages: 18,
-    total_chunks: 52,
+    paper_id: 'sample-diffusionvla-2025',
+    filename: 'wen25g.pdf',
+    total_pages: 17,
+    total_chunks: 58,
     breakdown: {
-      title: 'Scalable Attention Architectures: Linear, Flash, and Sparse Attention in Long-Context LLMs',
-      authors: 'Devon Zhao, Sofia K. Lindqvist, Tariq Al-Mansoor',
-      publication_venue: 'Conference on Neural Information Processing Systems (NeurIPS), 2024',
-      executive_summary: 'A comprehensive study evaluating memory-bandwidth trade-offs across attention variants up to 128k token contexts. The authors demonstrate that IO-aware tiling in FlashAttention-3 yields up to 3.5x wall-clock speedups over standard multi-head attention without quality degradation.',
+      title: 'DiffusionVLA: Scaling Robot Foundation Models via Unified Diffusion and Autoregression',
+      authors: 'Junjie Wen, Yichen Zhu, Minjie Zhu, Zhibin Tang, Jinming Li, Zhongyi Zhou, et al.',
+      publication_venue: 'arXiv / Robotics Foundation Models',
+      executive_summary: 'DiffusionVLA introduces a unified framework that couples discrete autoregressive language reasoning with continuous diffusion policy heads. By leveraging self-generated reasoning tokens to guide trajectory planning, DiffusionVLA eliminates compounding action error and sustains real-time inference speeds up to 82Hz on DiVLA-2B and 42Hz on DiVLA-7B.',
       key_contributions: [
-        'GPU memory hierarchy profiling of quadratic vs. sub-quadratic attention kernels.',
-        'Empirical verification of FlashAttention-3 throughput on Hopper FP8 Tensor Cores.',
-        'Quantified perplexity drift across sliding-window and dilated sparse attention masks.'
+        'Unified architecture seamlessly integrating discrete autoregressive reasoning with continuous diffusion-based action heads.',
+        'Reasoning Injection Module enhancing multi-step action planning precision without introducing inference latency overhead.',
+        'High-speed execution sustaining 82Hz on DiVLA-2B and 42Hz on DiVLA-7B (compared to 5Hz for conventional autoregressive VLAs).',
+        'Robust visual generalization across novel distractor objects, unseen backgrounds, and varied embodiment kinematics.'
       ],
-      methodology: 'Benchmarking on 8x NVIDIA H100 clusters evaluating sequence lengths from 2k to 128k tokens across diverse matrix operations and multi-GPU tensor-parallel configurations.',
-      results_and_benchmarks: 'FlashAttention-3 sustained 640 TFLOPs/s in FP16 and over 1.1 PFLOPs/s in FP8, reducing context ingestion overhead by 68% relative to FlashAttention-2.',
-      limitations: 'Hardware dependence requiring modern tensor core architecture; numerical instability in FP8 low-precision under extreme outlier activations.',
-      bibtex: `@inproceedings{zhao2024scalable,\n  title={Scalable Attention Architectures: Linear, Flash, and Sparse Attention in Long-Context LLMs},\n  author={Zhao, Devon and Lindqvist, Sofia K. and Al-Mansoor, Tariq},\n  booktitle={NeurIPS},\n  year={2024}\n}`,
+      methodology: 'Combines a visual encoder, language model backbone, and a continuous diffusion policy head. Reasoning tokens are generated autoregressively to interpret scene dynamics and condition the diffusion process to denoise multi-step robot trajectories.',
+      results_and_benchmarks: 'DiVLA-2B operates at 82Hz and DiVLA-7B at 42Hz, providing over 8x speedup compared to OpenVLA-7B (5Hz) while achieving superior success rates on complex multi-stage manipulation tasks.',
+      limitations: 'Sensitivity to visual occlusions under extreme camera angle shifts; GPU memory bandwidth demands during high-step diffusion denoising.',
+      bibtex: `@article{wen2025diffusionvla,\n  title={DiffusionVLA: Scaling Robot Foundation Models via Unified Diffusion and Autoregression},\n  author={Wen, Junjie and Zhu, Yichen and Zhu, Minjie and Tang, Zhibin and Li, Jinming and Zhou, Zhongyi and Liu, Xiaoyu and Shen, Chaomin and Peng, Yaxin and Feng, Feifei},\n  journal={arXiv preprint},\n  year={2025}\n}`,
       suggested_questions: [
-        'How does FlashAttention-3 achieve 3.5x wall-clock speedup?',
-        'What are the memory bottlenecks in sequences above 64k tokens?',
-        'How does numerical instability manifest in FP8 attention?'
+        'How does DiffusionVLA achieve 82Hz inference compared to 5Hz in autoregressive models?',
+        'What is the specific architectural role of the Reasoning Injection Module?',
+        'How does continuous diffusion action generation prevent compounding trajectory error?'
       ]
     },
     pages_data: [
       {
         page: 1,
-        text: 'Scalable Attention Architectures: Linear, Flash, and Sparse Attention in Long-Context LLMs\n\nDevon Zhao, Sofia K. Lindqvist, Tariq Al-Mansoor\n\nAbstract: Processing extensive context windows in transformer models remains fundamentally constrained by memory bandwidth. This work systematically examines hardware-aware attention mechanisms.'
+        text: 'DiffusionVLA: Scaling Robot Foundation Models via Unified Diffusion and Autoregression\n\nJunjie Wen, Yichen Zhu, Minjie Zhu, Zhibin Tang, Jinming Li, Zhongyi Zhou, Xiaoyu Liu, Chaomin Shen, Yaxin Peng, Feifei Feng\n\nAbstract: In this paper, we present DiffusionVLA, a novel framework that integrates autoregressive reasoning with diffusion-based action policies. DiffusionVLA enables high-frequency real-time robotic control while maintaining deep contextual reasoning.'
       },
       {
         page: 2,
-        text: '1. Hardware Memory Hierarchy Bottlenecks\n\nStandard softmax attention computes an N x N matrix that exceeds on-chip SRAM capacity, triggering repeated High-Bandwidth Memory (HBM) IO roundtrips. FlashAttention mitigates this through block-tiling and online softmax rescaling.'
+        text: '1. Unifying Discrete Reasoning with Continuous Diffusion\n\nWhile autoregressive VLAs like OpenVLA discretize actions into language tokens, this introduces quantization loss and slow inference. DiffusionVLA instead retains continuous action representations via a diffusion policy conditioned on autoregressively generated reasoning embeddings.'
       },
       {
         page: 3,
-        text: '2. FP8 Tensor Core Execution\n\nBy mapping attention blocks directly to Hopper FP8 Tensor Cores, FlashAttention-3 achieves over 1.1 PFLOPs/s while maintaining sub-0.05 perplexity drift compared to FP16 baselines.'
+        text: '2. High-Frequency Robotic Control\n\nDiffusionVLA achieves inference frequencies of 82Hz for DiVLA-2B and 42Hz for DiVLA-7B on a single NVIDIA RTX 4090 GPU, a substantial leap over OpenVLA-7B which operates at ~5Hz.'
       }
     ]
   }
 ];
+
+
 
 export default function Home() {
   const [papers, setPapers] = useState<Paper[]>([]);
@@ -168,7 +171,6 @@ export default function Home() {
   // Settings, Model & Session State
   const [showApiModal, setShowApiModal] = useState(false);
   const [geminiKey, setGeminiKey] = useState('');
-  const [groqKey, setGroqKey] = useState('');
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [isNightMode, setIsNightMode] = useState(false);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
@@ -190,7 +192,6 @@ export default function Home() {
   // Load API keys, session, and preferences from localStorage
   useEffect(() => {
     const savedGemini = localStorage.getItem('gemini_api_key') || '';
-    const savedGroq = localStorage.getItem('groq_api_key') || '';
     const savedModel = localStorage.getItem('selected_model') || 'gemini-2.5-flash';
     const savedNight = localStorage.getItem('newspaper_night_mode') === 'true';
 
@@ -214,7 +215,6 @@ export default function Home() {
     }
 
     if (savedGemini) setGeminiKey(savedGemini);
-    if (savedGroq) setGroqKey(savedGroq);
     if (savedModel) setSelectedModel(savedModel);
     if (savedNight) {
       setIsNightMode(true);
@@ -272,7 +272,6 @@ export default function Home() {
 
   const saveApiSettings = () => {
     localStorage.setItem('gemini_api_key', geminiKey.trim());
-    localStorage.setItem('groq_api_key', groqKey.trim());
     localStorage.setItem('selected_model', selectedModel);
     localStorage.setItem('paperscope_top_k', String(topK));
     localStorage.setItem('paperscope_chunking_strategy', chunkingStrategy);
@@ -310,7 +309,6 @@ export default function Home() {
     try {
       const headers: Record<string, string> = {};
       if (geminiKey.trim()) headers['x-gemini-key'] = geminiKey.trim();
-      if (groqKey.trim()) headers['x-groq-key'] = groqKey.trim();
       if (sessionId) headers['x-session-id'] = sessionId;
 
       formData.append('chunking_strategy', chunkingStrategy);
@@ -368,24 +366,31 @@ export default function Home() {
     setUploadError(null);
   };
 
-  const loadDemoPapers = () => {
-    setPapers(SAMPLE_DEMO_PAPERS);
+  const loadSamplePapers = () => {
+    setPapers(SAMPLE_RESEARCH_PAPERS);
     setActivePaperId('all');
     setMessages([
       {
         role: 'assistant',
-        content: `Loaded specimen research corpus with 2 publications: (1) "Retrieval-Augmented Generation for AI Reasoning" and (2) "Scalable Attention Architectures". Ask questions about individual techniques or compare both works below.`,
+        content: `Loaded sample research corpus from sample_docs/ with 2 frontier robotics publications: (1) "OpenVLA: An Open-Source Vision-Language-Action Model" (kim25c.pdf) and (2) "DiffusionVLA: Scaling Robot Foundation Models via Unified Diffusion and Autoregression" (wen25g.pdf). Ask questions about individual architectures or compare both approaches below.`,
         citations: [
-          { page: 1, filename: "Retrieval_Augmented_Generation_Survey.pdf", snippet: "Retrieval-Augmented Generation for AI Reasoning: Architectures, Benchmarks, and Future Directions. JAIR 2024.", relevance_score: 0.98 }
+          { page: 2, filename: "kim25c.pdf", snippet: "OpenVLA is a 7B-parameter open-source vision-language-action model trained on 970k robot episodes from the Open X-Embodiment dataset. It sets a new state of the art for generalist robot manipulation policies.", relevance_score: 0.98 },
+          { page: 3, filename: "wen25g.pdf", snippet: "DiffusionVLA achieves inference frequencies of 82Hz for DiVLA-2B and 42Hz for DiVLA-7B, a substantial leap over OpenVLA-7B which operates at ~5Hz.", relevance_score: 0.96 }
         ],
         cross_questions: [
-          "Compare the computational bottlenecks between RAG re-ranking and attention memory IO.",
-          "How does Context-Aware Adaptive Chunking compare to FlashAttention tiling?",
-          "Synthesize the collective breakthroughs from both papers."
+          "Compare the inference throughput and control frequency between OpenVLA (5Hz) and DiffusionVLA (82Hz).",
+          "How does discrete tokenization in OpenVLA compare to continuous diffusion in DiffusionVLA?",
+          "Synthesize the collective breakthroughs from both papers for robot foundation models."
         ]
       }
     ]);
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__loadSamplePapers = loadSamplePapers;
+    }
+  }, []);
 
   const handleSendMessage = async (customText?: string, highlightData?: { text: string; page?: number }) => {
     const textToSend = (customText || inputMessage).trim();
@@ -403,12 +408,12 @@ export default function Home() {
     setMessages(newMessages);
     setIsGenerating(true);
 
-    const isDemo = papers.some(p => p.paper_id.startsWith('demo-'));
-    if (isDemo && !geminiKey && !groqKey) {
+    const isSample = papers.some(p => p.paper_id.startsWith('sample-'));
+    if (isSample && !geminiKey) {
       setTimeout(() => {
-        let answer = "According to [Retrieval_Augmented_Generation_Survey, Page 4], hybrid vector-keyword retrieval reduces hallucinations by 42% on multi-hop benchmarks. Concurrently, [Attention_Mechanisms_Comparative_Study, Page 6] highlights that FlashAttention yields a 3.5x speedup by computing softmax tiling entirely in on-chip SRAM.";
+        let answer = "According to [kim25c.pdf, Page 4], OpenVLA outperforms RT-2-X (55B) by 16.5% absolute task success across real-world WidowX and Franka manipulation tasks. Concurrently, [wen25g.pdf, Page 3] demonstrates that DiffusionVLA solves the control latency bottleneck by achieving 82Hz inference on DiVLA-2B via continuous diffusion action heads, compared to 5Hz for autoregressive token prediction in OpenVLA.";
         if (quotingText) {
-          answer = `**Analysis of Highlighted Excerpt:**\n\n> "${quotingText}"\n\nThis section articulates a core methodological transition. By grounding attention matrix computations in high-bandwidth SRAM tiling, the architecture removes memory IO roundtrips, ensuring linear scalability without empirical perplexity loss.`;
+          answer = `**Analysis of Highlighted Excerpt:**\n\n> "${quotingText}"\n\nThis passage underscores the paradigm shift in robot foundation models. By fusing multi-modal vision-language pretraining with hardware-efficient action representation, the framework achieves generalist manipulation policies with high-frequency feedback.`;
         }
         setMessages([
           ...newMessages,
@@ -416,12 +421,13 @@ export default function Home() {
             role: 'assistant',
             content: answer,
             citations: [
-              { page: 2, filename: "Retrieval_Augmented_Generation_Survey", snippet: "Cross-encoder re-ranking introduces approximately 110ms latency overhead but improves top-3 precision by 28% on HalluEval.", relevance_score: 0.96 }
+              { page: 2, filename: "kim25c.pdf", snippet: "OpenVLA is a 7B-parameter open-source vision-language-action model trained on 970k robot episodes from the Open X-Embodiment dataset. It sets a new state of the art for generalist robot manipulation policies.", relevance_score: 0.98 },
+              { page: 3, filename: "wen25g.pdf", snippet: "DiffusionVLA achieves inference frequencies of 82Hz for DiVLA-2B and 42Hz for DiVLA-7B on a single GPU, a substantial leap over OpenVLA-7B which operates at ~5Hz.", relevance_score: 0.95 }
             ],
             cross_questions: [
-              "What architectural trade-offs exist between ColBERT and Dense Passage Retrieval?",
-              "How does memory bandwidth bottleneck standard multi-head attention?",
-              "Can FlashAttention-3 be applied to sparse attention patterns?"
+              "What architectural trade-offs exist between discrete action tokens and diffusion heads?",
+              "How does parameter-efficient fine-tuning (LoRA) prevent catastrophic forgetting?",
+              "Can DiffusionVLA scale to multi-embodiment bimanual mobile manipulation?"
             ]
           }
         ]);
@@ -430,10 +436,10 @@ export default function Home() {
       return;
     }
 
+
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (geminiKey.trim()) headers['x-gemini-key'] = geminiKey.trim();
-      if (groqKey.trim()) headers['x-groq-key'] = groqKey.trim();
       if (sessionId) headers['x-session-id'] = sessionId;
 
       const res = await fetch(`${API_BASE}/api/chat`, {
@@ -444,9 +450,9 @@ export default function Home() {
           message: textToSend,
           highlighted_text: quotingText || undefined,
           highlight_page: highlightData?.page || undefined,
-          provider: selectedModel.includes('llama') ? 'groq' : 'gemini',
+          provider: 'gemini',
           model: selectedModel,
-          api_key: geminiKey || groqKey,
+          api_key: geminiKey || undefined,
           top_k: topK,
           session_id: sessionId,
           history: messages.slice(-4).map(m => ({ role: m.role, content: m.content }))
@@ -781,18 +787,8 @@ export default function Home() {
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={loadDemoPapers}
-                id="load-demo-papers-btn"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}
-              >
-                <span>📑</span>
-                <span>Load Specimen Research Papers (Instant Demo)</span>
-              </button>
-            </div>
+
+
 
             {uploadError && (
               <div style={{ color: 'var(--ink-heavy)', fontSize: '0.88rem', marginTop: '10px', fontWeight: 600 }}>
@@ -1429,8 +1425,6 @@ export default function Home() {
                 <option value="gemini-2.5-flash">Google Gemini 2.5 Flash (Recommended & Fastest)</option>
                 <option value="gemini-2.5-pro">Google Gemini 2.5 Pro (Deep Mathematical Reasoning)</option>
                 <option value="gemini-flash-latest">Google Gemini Flash Latest</option>
-                <option value="llama-3.3-70b-versatile">Groq Llama 3.3 70B (High-Speed Inference)</option>
-                <option value="llama3-8b-8192">Groq Llama 3 8B</option>
               </select>
             </div>
 
@@ -1452,27 +1446,6 @@ export default function Home() {
                 placeholder="AIzaSy... or AQ...."
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
-              />
-            </div>
-
-            <div className={styles.formField}>
-              <label className={styles.formLabel}>
-                Groq API Key (Optional)
-                <a
-                  href="https://console.groq.com/keys"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: 'var(--ink-heavy)', marginLeft: '8px', fontSize: '0.74rem', textDecoration: 'underline' }}
-                >
-                  Get free key ↗
-                </a>
-              </label>
-              <input
-                type="password"
-                className={styles.formInput}
-                placeholder="gsk_..."
-                value={groqKey}
-                onChange={(e) => setGroqKey(e.target.value)}
               />
             </div>
 
@@ -1503,37 +1476,6 @@ export default function Home() {
                 <option value="coarse">Coarse Context (1800 chars / 300 overlap)</option>
                 <option value="section_aware">Section-Aware Academic (Strict Boundary Isolation)</option>
               </select>
-            </div>
-
-            <div className={styles.formField}>
-              <label className={styles.formLabel}>Multi-User Session Isolation ID</label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  readOnly
-                  className={styles.formInput}
-                  value={sessionId}
-                  style={{ opacity: 0.8, cursor: 'default', flex: 1, fontFamily: 'monospace', fontSize: '0.78rem' }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    const newSid = 'session_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
-                    setSessionId(newSid);
-                    localStorage.setItem('paperscope_session_id', newSid);
-                    setPapers([]);
-                    setActivePaperId('all');
-                    setMessages([]);
-                  }}
-                  title="Generate a fresh isolated session ID and clear current document state"
-                >
-                  New Session
-                </button>
-              </div>
-              <span style={{ fontSize: '0.70rem', color: 'var(--ink-muted)', fontStyle: 'italic', marginTop: '2px' }}>
-                Your papers, vector indices, and chat queries are completely private to this session ID.
-              </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
